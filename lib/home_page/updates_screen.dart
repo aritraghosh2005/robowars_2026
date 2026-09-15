@@ -1,263 +1,191 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:robowars_app/home_page/widgets/fluid_nav_bar.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
-class UpdatesPage extends StatefulWidget {
+class UpdatesPage extends StatelessWidget {
   const UpdatesPage({super.key});
 
-  @override
-  State<UpdatesPage> createState() => _UpdatesPageState();
+  final List<Map<String, String>> _updates = const [
+    {
+      'title': 'Round 1 Results: Featherweight',
+      'content': 'Team Orcus\'s "Raven" clinched victory in a stunning KO against "Byte Crusher". The bot\'s spinner was unstoppable.',
+      'time': '2 hrs ago',
+      'tag': 'RESULTS',
+    },
+    {
+      'title': 'Match Delayed: Arena Inspection',
+      'content': 'The heavyweight bout between Team Shadow and Team Nexus has been delayed by 30 minutes for arena safety checks.',
+      'time': '3 hrs ago',
+      'tag': 'ALERT',
+    },
+    {
+      'title': 'Schedule Update: Day 2',
+      'content': 'The semifinals bracket has been updated. Check the Schedule tab for the latest matchup times and pairings.',
+      'time': '5 hrs ago',
+      'tag': 'UPDATE',
+    },
+    {
+      'title': 'KO of the Day: Firestorm Dominates',
+      'content': 'Team Blaze\'s "Firestorm" delivered the most spectacular KO of the day, launching "Ice Breaker" 3 feet into the air.',
+      'time': '6 hrs ago',
+      'tag': 'HIGHLIGHT',
+    },
+    {
+      'title': 'Registration Reminder',
+      'content': 'Walk-in registrations close tonight at 10 PM. All competing teams must verify their bot weight at the check-in desk.',
+      'time': '8 hrs ago',
+      'tag': 'INFO',
+    },
+    {
+      'title': 'Day 1 Recap: 12 Matches Completed',
+      'content': 'A thrilling Day 1 saw 12 matches across all weight classes. The Featherweight category had the most upsets so far.',
+      'time': '10 hrs ago',
+      'tag': 'RECAP',
+    },
+  ];
 
-  static Widget buildUpdateCard({
-    required String name,
-    required String message,
-    required String time,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: Color(0xFFD9D9D9),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF8439F9).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.05,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: SvgPicture.asset('assets/images/robovitics logo.svg',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(14.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: const TextStyle(
-                            color: Color(0xFFD9D9D9),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          message,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          child: Text(
-                            time,
-                            style: const TextStyle(
-                              color: Color(0xFFD9D9D9),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _tagColor(String tag) {
+    switch (tag) {
+      case 'RESULTS': return AppColors.primary;
+      case 'ALERT': return const Color(0xFFFF6B2B);
+      case 'UPDATE': return const Color(0xFF2B9EFF);
+      case 'HIGHLIGHT': return const Color(0xFFFFD700);
+      case 'INFO': return const Color(0xFF7B61FF);
+      case 'RECAP': return const Color(0xFF2BFFA0);
+      default: return AppColors.textMuted;
+    }
   }
-
-  static Widget buildDateDivider(String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 2,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Colors.transparent,
-                    Color(0xFFB84BFF),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFFD9D9D9),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 2,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerRight,
-                  end: Alignment.centerLeft,
-                  colors: [
-                    Colors.transparent,
-                    Color(0xFFB84BFF),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UpdatesPageState extends State<UpdatesPage> {
-  int _currentIndex = 0;
-  final Widget logo = SvgPicture.asset(
-    'assets/images/robovitics logo.svg',
-    height: 40,
-    width: 40,
-  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).padding.bottom,
-          right: 10.0, // Don't forget horizontal padding
-        ),
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: const Color(0xFF8439F9),
-          child: const Icon(Icons.campaign, color: Colors.white),
-        ),
-      ),
-      // Location should be separate
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(90 + MediaQuery.of(context).padding.top),
-        child: Container(
-          color: Colors.black,
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top,
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    logo,
-                    const Text(
-                      "Updates",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Trajan Pro',
-                      ),
-                    ),
-                    Icon(
-                      Icons.account_circle_outlined,
-                      color: Color(0xFF9C49E2),
-                      size: 45,
-                    ),
-                  ],
-                ),
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: AppColors.background,
+            floating: true,
+            snap: true,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            leadingWidth: 56,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+              child: Image.asset('assets/images/app_logo.png', fit: BoxFit.contain),
+            ),
+            title: const Text(
+              'UPDATES',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 2.0,
               ),
-              Container(
-                height: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 30),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Color(0xFFB84BFF),
-                      Colors.transparent,
-                    ],
-                    stops: [0, 0.5, 1.0],
-                  ),
-                ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Icon(Icons.account_circle_outlined, color: AppColors.primary, size: 30),
               ),
             ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(height: 1, color: AppColors.border),
+            ),
           ),
-        ),
-      ),
 
-      body: Stack(
-        children: [
-          Center(
-            child: Opacity(
-              opacity: 0.04,
-              child: SvgPicture.asset(
-                'assets/logo.svg',
-                width: 300,
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _buildUpdateCard(index),
+                childCount: _updates.length,
               ),
             ),
           ),
-          ListView(
-            padding: const EdgeInsets.only(bottom: 20, top: 10),
-            children: [
-              UpdatesPage.buildUpdateCard(
-                name: "John Doe",
-                message: "The competition schedule has been updated. Please check the new timings for your matches.",
-                time: "9:00 am",
-              ),
-              UpdatesPage.buildUpdateCard(
-                name: "Jane Smith",
-                message: "Team registration deadline has been extended to Friday. Make sure to submit all required documents.",
-                time: "10:30 am",
-              ),
-              UpdatesPage.buildDateDivider("Yesterday"),
-              UpdatesPage.buildUpdateCard(
-                name: "Event Coordinator",
-                message: "Reminder: Mandatory safety briefing tomorrow at 11 AM in the main auditorium.",
-                time: "3:45 pm",
-              ),
-              UpdatesPage.buildUpdateCard(
-                name: "Technical Team",
-                message: "New rule update: All robots must pass weight verification before each match.",
-                time: "5:20 pm",
-              ),
-              UpdatesPage.buildDateDivider("May 24"),
-              UpdatesPage.buildUpdateCard(
-                name: "Organizing Committee",
-                message: "Congratulations to Team Phoenix for winning the innovation award!",
-                time: "7:00 pm",
-              ),
-            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpdateCard(int index) {
+    final update = _updates[index];
+    final tag = update['tag']!;
+    final tagColor = _tagColor(tag);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top bar with tag + time
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: tagColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: tagColor.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    tag,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: tagColor,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  update['time']!,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    color: AppColors.textMuted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  update['title']!,
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 15,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  update['content']!,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

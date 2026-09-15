@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
 class VSIndicator extends StatelessWidget {
   const VSIndicator({super.key});
@@ -6,15 +7,19 @@ class VSIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(5),
-      height: 45,
-      width: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: const Text(
-        'V/s',
+        'VS',
         style: TextStyle(
-          fontSize: 12,
+          fontFamily: 'Space Grotesk',
+          fontSize: 13,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: AppColors.primary,
+          letterSpacing: 1.0,
         ),
       ),
     );

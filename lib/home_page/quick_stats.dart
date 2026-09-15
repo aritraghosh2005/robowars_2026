@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gradient_borders/box_borders/gradient_box_border.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
 class QuickStats extends StatelessWidget {
   final Map<String, String> stats;
@@ -10,136 +10,101 @@ class QuickStats extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = stats.entries.toList();
 
-    return SizedBox(
-      width: 335,
-      height: 236,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1E),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Quick Stats',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: List.generate(entries.length, (index) {
-                final entry = entries[index];
-                return _statCard(entry.key, entry.value, index);
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _statCard(String label, String value, int index) {
-    // Configurations per box
-    late Alignment gradientAlign;
-    late Alignment gradientBegin;
-    late Alignment gradientEnd;
-    late BorderRadius borderRadius;
-
-    switch (index) {
-      case 0: // Top-left (Quadrant IV) - FIXED INNER CIRCLE
-        gradientAlign = Alignment.bottomRight;
-        gradientBegin = Alignment.topRight;
-        gradientEnd = Alignment.bottomLeft;
-        borderRadius = const BorderRadius.only(
-          topLeft: Radius.circular(150), // Only round the inner circle's corner
-        );
-        break;
-      case 1: // Top-right (Quadrant I)
-        gradientAlign = Alignment.bottomLeft;
-        gradientBegin = Alignment.bottomLeft;
-        gradientEnd = Alignment.topRight;
-        borderRadius = const BorderRadius.only(topRight: Radius.circular(150));
-        break;
-      case 2: // Bottom-left (Quadrant III)
-        gradientAlign = Alignment.topRight;
-        gradientBegin = Alignment.topRight;
-        gradientEnd = Alignment.bottomLeft;
-        borderRadius = const BorderRadius.only(
-          bottomLeft: Radius.circular(150),
-        );
-        break;
-      case 3: // Bottom-right (Quadrant II)
-        gradientAlign = Alignment.topLeft;
-        gradientBegin = Alignment.topLeft;
-        gradientEnd = Alignment.bottomRight;
-        borderRadius = const BorderRadius.only(
-          bottomRight: Radius.circular(150),
-        );
-        break;
-      default:
-        gradientAlign = Alignment.bottomRight;
-        gradientBegin = Alignment.bottomRight;
-        gradientEnd = Alignment.topLeft;
-        borderRadius = const BorderRadius.only(
-          bottomLeft: Radius.circular(150),
-        );
-    }
-
     return Container(
-      width: 143,
-      height: 70,
+      width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          10.0,
-        ), // Outer container remains rounded
-        border: Border.all(color: const Color(0xFF6D37C4), width: 1.5),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
-      child: Stack(
+      child: Column(
         children: [
-          Align(
-            alignment: gradientAlign,
-            child: ClipRRect(
-              // Clip the inner gradient to force a perfect circle
-              borderRadius: borderRadius,
-              child: Container(
-                width: 100,
-                height: 100,
+          // Grid of stats — 2x2
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 2.0,
+              crossAxisSpacing: 0,
+              mainAxisSpacing: 0,
+            ),
+            itemCount: entries.length,
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              final isTop = index < 2;
+              final isLeft = index % 2 == 0;
+              final isTopLeft = index == 0;
+              final isTopRight = index == 1;
+              final isBottomLeft = index == entries.length - 2;
+              final isBottomRight = index == entries.length - 1;
+
+              return Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0x73000000), Color(0x73A74FEF)],
-                    begin: gradientBegin,
-                    end: gradientEnd,
+                  border: Border(
+                    right: isLeft ? const BorderSide(color: AppColors.border, width: 1) : BorderSide.none,
+                    bottom: isTop ? const BorderSide(color: AppColors.border, width: 1) : BorderSide.none,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: isTopLeft ? const Radius.circular(15) : Radius.zero,
+                    topRight: isTopRight ? const Radius.circular(15) : Radius.zero,
+                    bottomLeft: isBottomLeft ? const Radius.circular(15) : Radius.zero,
+                    bottomRight: isBottomRight ? const Radius.circular(15) : Radius.zero,
                   ),
                 ),
-              ),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                child: Stack(
+                  children: [
+                    // Subtle gradient glow in corner
+                    Positioned(
+                      top: 0,
+                      left: isLeft ? 0 : null,
+                      right: isLeft ? null : 0,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.12),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Content
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            entry.value,
+                            style: const TextStyle(
+                              fontFamily: 'Space Grotesk',
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            entry.key.toUpperCase(),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: 13, color: Colors.white70),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),

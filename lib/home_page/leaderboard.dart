@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gradient_borders/box_borders/gradient_box_border.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
 class LeaderboardTab extends StatefulWidget {
   final VoidCallback onTabClicked;
@@ -10,208 +10,166 @@ class LeaderboardTab extends StatefulWidget {
 }
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
-  bool _isExpanded = false;
-  List<String> names = <String>[
+  final List<String> names = const [
     'Arnav Srivastava',
-    'Arnav Srivastava',
-    'Arnav Srivastava',
-    'Arnav Srivastava',
-    'Arnav Srivastava',
-    'Arnav Srivastava',
+    'Priya Sharma',
+    'Rohan Gupta',
+    'Ananya Singh',
+    'Vikram Mehta',
+    'Deepika Patel',
   ];
-  List<int> points = <int>[100, 100, 100, 100, 100, 100, 100];
-  bool isExpanded = false;
+  final List<int> points = const [320, 280, 250, 210, 190, 170];
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: widget.onTabClicked,
-            child: SizedBox(
-              height: 300,
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: ClampingScrollPhysics(),
-                padding: const EdgeInsets.all(8),
-                itemCount: names.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return Padding(
-                    padding: const EdgeInsets.all(2.0),
-                    child: Container(
-                      height: 40, // Increased height for better spacing
-                      decoration: BoxDecoration(
-                        border: GradientBoxBorder(
-                          width: 2,
-                          gradient: LinearGradient(
-                            colors: [
-                              Color.fromARGB(255, 93, 62, 137),
-                              Color.fromRGBO(119, 95, 154, 0.98),
-                              Color.fromARGB(255, 161, 146, 186),
-                            ],
-                          ),
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: <Widget>[
-                                Container(
-                                  height: 24,
-                                  width: 24,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color.fromARGB(255, 140, 45, 225),
-                                  ),
-                                ),
-                                Text(
-                                  '${index + 1}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12, // Increased font size
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                              ),
-                              child: Text(
-                                names[index],
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14, // Increased font size
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 12.0),
-                            child: Text(
-                              '${points[index]} pts',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14, // Increased font size
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          Divider(
-            color: Color.fromARGB(255, 140, 45, 225),
-            thickness: 2,
-            height: 4.0,
-            indent: 8,
-            endIndent: 8,
-          ),
-          Container(
-            padding: EdgeInsets.all(8),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Your Rank',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.25,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(2.0),
-            child: Container(
-              height: 40, // Increased height for better spacing
-              decoration: BoxDecoration(
-                border: GradientBoxBorder(
-                  width: 2,
-                  gradient: LinearGradient(
-                    colors: [
-                      Color.fromARGB(255, 93, 62, 137),
-                      Color.fromRGBO(119, 95, 154, 0.98),
-                      Color.fromARGB(255, 161, 146, 186),
-                    ],
+    return GestureDetector(
+      onTap: widget.onTabClicked,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top 6 list
+            ...List.generate(names.length, (index) {
+              final isTopThree = index < 3;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isTopThree ? AppColors.primary.withValues(alpha: 0.08) : AppColors.surfaceAlt,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isTopThree ? AppColors.primary.withValues(alpha: 0.35) : AppColors.border,
                   ),
                 ),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: <Widget>[
-                        Container(
-                          height: 24,
-                          width: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color.fromARGB(255, 140, 45, 225),
-                          ),
-                        ),
-                        Text(
-                          '10',
-                          style: TextStyle(
+                child: Row(
+                  children: [
+                    // Rank circle
+                    Container(
+                      height: 26,
+                      width: 26,
+                      decoration: BoxDecoration(
+                        color: isTopThree ? AppColors.primary : AppColors.border,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
                             color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Text(
-                        'Anirban Haldar',
-                        style: TextStyle(
+                        names[index],
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
                           color: Colors.white,
-                          fontSize: 14, // Increased font size
-                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: Text(
-                      '-50 pts',
+                    Text(
+                      '${points[index]} pts',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Space Grotesk',
+                        color: isTopThree ? AppColors.primary : AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            // Divider
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  const Expanded(child: Divider(color: AppColors.border, height: 1)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      'YOUR RANK',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 9,
+                        color: AppColors.textMuted,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider(color: AppColors.border, height: 1)),
+                ],
+              ),
+            ),
+
+            // Current user rank
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    height: 26,
+                    width: 26,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '10',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'You (Anirban Haldar)',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Text(
+                    '-50 pts',
+                    style: TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

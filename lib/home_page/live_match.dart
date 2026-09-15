@@ -1,135 +1,189 @@
 import 'package:flutter/material.dart';
-import 'package:gradient_borders/box_borders/gradient_box_border.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
-class LiveMatch extends StatefulWidget {
+class LiveMatch extends StatelessWidget {
   const LiveMatch({super.key});
 
   @override
-  State<LiveMatch> createState() => _LiveMatchState();
-}
-
-class _LiveMatchState extends State<LiveMatch> {
-  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: Container(
-        decoration: BoxDecoration(
-          border: GradientBoxBorder(
-            width: 3,
-            gradient: LinearGradient(
-              colors: [
-                Color.fromARGB(250, 96, 60, 147),
-                Color.fromARGB(255, 93, 62, 137),
-                Color.fromRGBO(119, 95, 154, 0.98),
-                Color.fromARGB(255, 161, 146, 186),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'LIVE MATCH',
+                  style: TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                // LIVE pill
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Blinking dot
+                      Container(
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.only(right: 5),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const Text(
+                        'LIVE',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          borderRadius: BorderRadius.circular(10),
-          //color: Colors.grey[900],
-        ),
-        height: 220,
-        width: 335,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(29, 0, 29, 0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          const SizedBox(height: 12),
+
+          // Video placeholder
+          Container(
+            height: 160,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Live Match',
-                    textAlign: TextAlign.left,
-                    style: GoogleFonts.montserrat(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 22,
-                      letterSpacing: 1.75,
-                    ),
+                  Icon(
+                    Icons.play_circle_outline_rounded,
+                    color: AppColors.primary.withValues(alpha: 0.6),
+                    size: 48,
                   ),
-                  SizedBox(
-                    height: 24, // Fixed height for the badge container
-                    child: Stack(
-                      clipBehavior: Clip.none, // Allows elements to overflow
-                      children: [
-                        // Red background container
-                        Container(
-                          width: 50,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color.fromARGB(255, 235, 94, 87),
-                                Color.fromARGB(255, 237, 109, 104),
-                                Color.fromARGB(255, 237, 120, 115),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        // LIVE badge positioned absolutely
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  margin: const EdgeInsets.only(right: 4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                Text(
-                                  'LIVE',
-                                  style: GoogleFonts.montserrat(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    letterSpacing: 0.5,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Stream not available',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ],
               ),
-              Center(
-                child: Container(
-                  padding: EdgeInsets.fromLTRB(14, 0, 14, 0),
-                  height: 115,
-                  width: 315,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!, width: 2),
-                    borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // VS row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Team Xenon',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Bot: Thunder Strike',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(2.0),
-                child: Expanded(
-                  child: Text(
-                    'Team Xenon Vs Team TerrorBulls',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                  ),
+                  child: const Text(
+                    'V/S',
+                    style: TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      letterSpacing: 1.0,
                     ),
                   ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: const [
+                      Text(
+                        'Team TerrorBulls',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Bot: Iron Jaws',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

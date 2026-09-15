@@ -1,184 +1,137 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
 class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(height: 30),
-            Center(
-              child: Text(
-                "My Profile",
-                style: GoogleFonts.poppins(
-                  fontSize: 36,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+          child: Column(
+            children: [
+              // Header
+              Row(
+                children: [
+                  const Text(
+                    'PROFILE',
+                    style: TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 2.0,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {},
+                    child: const Icon(Icons.settings_outlined, color: AppColors.textMuted, size: 22),
+                  ),
+                ],
+              ),
+              const Divider(color: AppColors.border, height: 24),
+
+              // Avatar
+              const SizedBox(height: 10),
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primary, width: 2),
+                ),
+                child: const Icon(Icons.person_outline, size: 50, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Name',
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-            ),
-            SizedBox(height: 10),
-            buildGradientDivider(height: 1),
-            SizedBox(height: 2),
-            buildGradientDivider(height: 1),
-            SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 24.0),
-                child: Text(
-                  "<",
-                  style: GoogleFonts.poppins(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.purple[900],
-                  ),
+              const SizedBox(height: 4),
+              const Text(
+                'email@example.com',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
                 ),
               ),
-            ),
-            SizedBox(height: 30),
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white,
-                    Color(0xFF7532CC),
-                  ],
-                ),
-              ),
-              child: CircleAvatar(
-                backgroundColor: Colors.transparent,
-                child: Icon(
-                  Icons.person,
-                  size: 110,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Name",
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              "Email ID",
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.grey[400],
-              ),
-            ),
-            SizedBox(height: 30),
-            buildGradientDivider(height: 1.5),
-            SizedBox(height: 30),
-            buildOption("Team Name"),
-            buildOption("Edit Profile"),
-            buildOption("FAQs"),
-            buildOption("Settings"),
-            SizedBox(height: 40),
+              const SizedBox(height: 28),
+              const Divider(color: AppColors.border, height: 1),
+              const SizedBox(height: 20),
 
-            Container(
-              margin: EdgeInsets.symmetric(vertical: 30),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF7532CC),Color(0xFF8764B5), Color(0xFF7532CC),Color(0xFFBA9BE2)],
-                ),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              padding: EdgeInsets.all(2), // border thickness
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black, // inside fill color
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: InkWell(
-                  onTap: () {
-                    // Your logout logic here
-                  },
-                  borderRadius: BorderRadius.circular(14),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric( horizontal:10,vertical: 12),
-                    child: Center(
-                      child: Text(
-                        'Logout',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+              // Options
+              _buildOption(Icons.groups_outlined, 'Team Name'),
+              _buildOption(Icons.edit_outlined, 'Edit Profile'),
+              _buildOption(Icons.help_outline_rounded, 'FAQs'),
+              _buildOption(Icons.settings_outlined, 'Settings'),
+
+              const SizedBox(height: 32),
+              // Logout button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text(
+                    'LOGOUT',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
                     ),
                   ),
                 ),
               ),
-            ),
 
-
-            SizedBox(height: 30),
-            buildGradientDivider(height: 1.5),
-            Spacer(),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 30.0),
-              child: Text(
-                "Made with 💜 by RoboVITics",
-                style: GoogleFonts.poppins(
-                  color: Colors.white54,
-                  fontSize: 14,
+              const SizedBox(height: 32),
+              const Text(
+                'Made with ❤️ by RoboVITics',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  color: AppColors.textMuted,
+                  fontSize: 12,
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildGradientDivider({double height = 1}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0),
-      child: Container(
-        height: height,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.transparent,
-              Color (0xFFC45DFF),
-              Colors.transparent,
             ],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
           ),
-          borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
   }
 
-  Widget buildOption(String text) {
+  Widget _buildOption(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.only(left: 70.0, top: 6.0, bottom: 6.0),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: AppColors.textMuted, size: 20),
+        title: Text(
           text,
-          style: GoogleFonts.poppins(
-            fontSize: 20.0,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 15,
             fontWeight: FontWeight.w500,
             color: Colors.white,
           ),
         ),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 18),
+        onTap: () {},
       ),
     );
   }

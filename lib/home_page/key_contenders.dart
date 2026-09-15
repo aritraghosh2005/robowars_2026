@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:gradient_borders/box_borders/gradient_box_border.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
 class Contender {
   final String name;
   final String team;
   final String result;
 
-  Contender({required this.name, required this.team, required this.result});
+  const Contender({required this.name, required this.team, required this.result});
 }
 
 class KeyContenders extends StatelessWidget {
@@ -18,96 +17,128 @@ class KeyContenders extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(29, 16, 29, 16),
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      width: double.infinity,
       decoration: BoxDecoration(
-        border: GradientBoxBorder(
-          width: 3,
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 93, 62, 137),
-              Color.fromRGBO(119, 95, 154, 0.98),
-              Color.fromARGB(255, 161, 146, 186),
-            ],
-          ),
-        ),
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Key Contenders',
-            style: GoogleFonts.montserrat(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Column(
-            children: contenders
-                .map(
-                  (contender) => _ContenderRow(
-                    name: contender.name,
-                    team: contender.team,
-                    result: contender.result,
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ContenderRow extends StatelessWidget {
-  final String name;
-  final String team;
-  final String result;
-
-  const _ContenderRow({
-    required this.name,
-    required this.team,
-    required this.result,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: GoogleFonts.montserrat(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              Text(
-                team,
-                style: GoogleFonts.montserrat(color: Colors.grey[400]),
-              ),
-            ],
-          ),
+          // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.deepPurple,
-              borderRadius: BorderRadius.circular(20),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.border, width: 1),
+              ),
             ),
-            child: Text(
-              result,
-              style: GoogleFonts.montserrat(color: Colors.white),
+            child: Row(
+              children: const [
+                Text(
+                  'Bot',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Spacer(),
+                Text(
+                  'Team',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                SizedBox(width: 60),
+                Text(
+                  'Result',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
           ),
+          // Rows
+          ...contenders.asMap().entries.map((entry) {
+            final i = entry.key;
+            final c = entry.value;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                border: i < contenders.length - 1
+                    ? const Border(
+                        bottom: BorderSide(color: AppColors.border, width: 1),
+                      )
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  // Bot name
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.name,
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Team name
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      c.team,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  // Result badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(
+                      c.result,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
 class TeamWidget extends StatelessWidget {
   final String teamName;
@@ -12,15 +13,33 @@ class TeamWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      width: 95,
-      padding: EdgeInsets.all(8),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: 54,
+      width: 110,
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white),
-        borderRadius: BorderRadius.circular(12),
+        color: isExpanded ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surfaceAlt,
+        border: Border.all(
+          color: isExpanded ? AppColors.primary : AppColors.border,
+          width: 1.5,
+        ),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(teamName, style: TextStyle(color: Colors.white)),
+      child: Center(
+        child: Text(
+          teamName,
+          style: TextStyle(
+            fontFamily: 'Space Grotesk',
+            color: isExpanded ? AppColors.primary : Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
     );
   }
 }

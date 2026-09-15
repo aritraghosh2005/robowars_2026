@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gradient_borders/box_borders/gradient_box_border.dart';
 import 'package:robowars_app/home_page/leaderboard.dart';
 import 'package:robowars_app/home_page/prediction.dart';
+import 'package:robowars_app/theme/app_theme.dart';
 
 class PopUpCard extends StatefulWidget {
   const PopUpCard({super.key});
@@ -16,30 +16,15 @@ class _PopUpCardState extends State<PopUpCard> with TickerProviderStateMixin {
   late Animation<double> _scaleAnimation;
   bool _isPredictionExpanded = false;
   bool _isLeaderboardTabActive = false;
-  late PredictionTab _predictionTab;
 
   void _handlePredictionExpand(bool isExpanded) {
-    setState(() {
-      _isPredictionExpanded = isExpanded;
-    });
+    setState(() => _isPredictionExpanded = isExpanded);
   }
 
   void _handleTabSelection() {
     setState(() {
       _isLeaderboardTabActive = _tabController.index == 1;
-      if (_tabController.index == 1) {
-        _isPredictionExpanded = false;
-      }
-    });
-  }
-
-  void _handlePredictionTabClick() {
-    setState(() {
-      _isLeaderboardTabActive = false;
-      _predictionTab = PredictionTab(
-        onExpandChanged: _handlePredictionExpand,
-        onTabClicked: () => _handlePredictionTabClick(),
-      );
+      if (_tabController.index == 1) _isPredictionExpanded = false;
     });
   }
 
@@ -57,10 +42,6 @@ class _PopUpCardState extends State<PopUpCard> with TickerProviderStateMixin {
       curve: Curves.fastOutSlowIn,
     );
     _controller.forward();
-    _predictionTab = PredictionTab(
-      onExpandChanged: _handlePredictionExpand,
-      onTabClicked: () => _handlePredictionTabClick(),
-    );
   }
 
   @override
@@ -73,145 +54,126 @@ class _PopUpCardState extends State<PopUpCard> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final gradientColors = [
-      Color.fromARGB(255, 193, 110, 234),
-      const Color.fromARGB(255, 171, 89, 233),
-      //const Color.fromARGB(255, 144, 122, 184),
-      //const Color.fromARGB(255, 125, 44, 182),
-      const Color.fromARGB(255, 190, 167, 225),
-    ];
     final double currentHeight = _isLeaderboardTabActive
         ? 550
         : _isPredictionExpanded
-        ? 350
-        : 250;
+            ? 350
+            : 280;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 350, maxHeight: currentHeight),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: Color(0xFF1A1A2E),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withOpacity(0.7),
-                  Colors.black.withOpacity(0.9),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          constraints: BoxConstraints(maxWidth: 380, maxHeight: currentHeight),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                blurRadius: 24,
+                spreadRadius: 2,
               ),
-              border: GradientBoxBorder(
-                width: 3,
-                gradient: LinearGradient(colors: gradientColors),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: gradientColors[1].withOpacity(0.3),
-                  blurRadius: 20,
-                  spreadRadius: 4,
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(9),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Text(
-                            'Guess It',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'PREDICT WINNER',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: AppColors.textSecondary,
+                            size: 16,
                           ),
                         ),
-                        SizedBox(
-                          width: 30, // Outer circle diameter
-                          height: 30, // Outer circle diameter
-                          child: IconButton(
-                            style: IconButton.styleFrom(
-                              backgroundColor: Color.fromARGB(
-                                255,
-                                137,
-                                44,
-                                225,
-                              ),
-                              shape: CircleBorder(),
-                              padding: EdgeInsets.all(
-                                4,
-                              ), // Adjusts space between icon and edge
-                            ),
-                            iconSize: 20, // Icon graphic size
-                            icon: Icon(Icons.close, color: Colors.white),
-                            onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Tab bar
+                  Container(
+                    height: 36,
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceAlt,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: AppColors.textMuted,
+                      indicator: BoxDecoration(
+                        borderRadius: BorderRadius.circular(7),
+                        color: AppColors.primary,
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      dividerColor: Colors.transparent,
+                      labelStyle: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                      tabs: const [
+                        Tab(text: 'Predict'),
+                        Tab(text: 'Leaderboard'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        SingleChildScrollView(
+                          child: PredictionTab(
+                            onTabClicked: () => setState(() => _isLeaderboardTabActive = false),
+                            onExpandChanged: _handlePredictionExpand,
                           ),
+                        ),
+                        LeaderboardTab(
+                          onTabClicked: () => setState(() {
+                            _isLeaderboardTabActive = true;
+                          }),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      height: 30,
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: Colors.black,
-                        unselectedLabelColor: Colors.grey,
-                        indicator: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(colors: gradientColors),
-                        ),
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        tabs: const [
-                          Tab(text: 'Prediction'),
-                          Tab(text: 'Leaderboard'),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: SizedBox(
-                        height: _isLeaderboardTabActive
-                            ? 500 // More space for leaderboard
-                            : _isPredictionExpanded
-                            ? 300
-                            : 200,
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            SingleChildScrollView(
-                              child: PredictionTab(
-                                onTabClicked: () {
-                                  setState() => _isLeaderboardTabActive = false;
-                                },
-                                onExpandChanged: _handlePredictionExpand,
-                              ),
-                            ),
-                            LeaderboardTab(
-                              onTabClicked: () {
-                                setState(() {
-                                  _isLeaderboardTabActive = true;
-                                  // _isPredictionExpanded = false;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
