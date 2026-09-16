@@ -151,12 +151,13 @@ class _AudioVisualizerState extends State<AudioVisualizer> with SingleTickerProv
 
     final chunk = _controller.spectogram![chunkIndex];
     
-    // Average amplitude for the breathing scale effect
-    double sum = 0;
+    // Fix breathing by tracking the MAX amplitude (beat) rather than the average,
+    // which was getting dragged down by the quiet high-frequency bands.
+    double maxAmp = 0;
     for (int i = 0; i < chunk.length; i++) {
-        sum += chunk[i];
+        if (chunk[i] > maxAmp) maxAmp = chunk[i];
     }
-    _currentAmplitude = sum / chunk.length;
+    _currentAmplitude = maxAmp;
 
     final frameRandom = Random(timeMs ~/ 80);
 
@@ -189,6 +190,26 @@ class _AudioVisualizerState extends State<AudioVisualizer> with SingleTickerProv
       // Apply symmetrically so left and right sides match
       targetLevels[mappedIndex] = level;
       targetLevels[barCount - 1 - mappedIndex] = level;
+    }
+
+    // SPATIAL BLUR: Smooth out the jagged spikes by blending each bar with its physical neighbors.
+    // This turns randomly scattered sharp spikes into beautiful, organic, rolling hills!
+    List<double> smoothed = List.filled(barCount, 0.0);
+    for (int i = 0; i < barCount; i++) {
+      double l2 = targetLevels[(i - 2 + barCount) % barCount];
+      double l1 = targetLevels[(i - 1 + barCount) % barCount];
+      double c  = targetLevels[i];
+      double r1 = targetLevels[(i + 1) % barCount];
+      double r2 = targetLevels[(i + 2) % barCount];
+      
+      // 5-bar weighted moving average.
+      // We multiply by 2.0 to restore the height that gets flattened out by the blur, ensuring they reach the top!
+      smoothed[i] = ((c * 0.35) + (l1 * 0.2) + (r1 * 0.2) + (l2 * 0.125) + (r2 * 0.125)) * 2.0;
+      smoothed[i] = smoothed[i].clamp(0.0, 1.0);
+    }
+    
+    for (int i = 0; i < barCount; i++) {
+      targetLevels[i] = smoothed[i];
     }
   }
 
@@ -263,8 +284,8 @@ class _AudioVisualizerState extends State<AudioVisualizer> with SingleTickerProv
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 200,
-          height: 200,
+          width: 160,
+          height: 160,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
@@ -276,19 +297,19 @@ class _AudioVisualizerState extends State<AudioVisualizer> with SingleTickerProv
                   children: [
                     if (_controller.isPlaying)
                       Container(
-                        width: 140,
-                        height: 140,
+                        width: 110,
+                        height: 110,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.transparent, // Required to cast shadow
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.cyan.withOpacity(0.12),
+                              color: Colors.redAccent.withOpacity(0.12),
                               blurRadius: 30,
                               spreadRadius: 10,
                             ),
                             BoxShadow(
-                              color: Colors.purple.withOpacity(0.06),
+                              color: Colors.red.shade900.withOpacity(0.15),
                               blurRadius: 30,
                               spreadRadius: 20,
                             ),
@@ -302,7 +323,7 @@ class _AudioVisualizerState extends State<AudioVisualizer> with SingleTickerProv
                         child: ImageFiltered(
                           imageFilter: ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0),
                           child: CustomPaint(
-                            size: const Size(200, 200),
+                            size: const Size(160, 160),
                             painter: VisualizerPainter(levels: currentLevels),
                           ),
                         ),
@@ -311,7 +332,7 @@ class _AudioVisualizerState extends State<AudioVisualizer> with SingleTickerProv
                     Transform.rotate(
                       angle: _currentRotation,
                       child: CustomPaint(
-                        size: const Size(200, 200),
+                        size: const Size(160, 160),
                         painter: VisualizerPainter(levels: currentLevels),
                       ),
                     ),
@@ -338,9 +359,9 @@ class _AudioVisualizerState extends State<AudioVisualizer> with SingleTickerProv
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-                      color: Colors.cyan.withOpacity(0.2),
+                      color: Colors.red.withOpacity(0.2),
                       boxShadow: [
-                        BoxShadow(color: Colors.cyan.withOpacity(0.3), blurRadius: 20),
+                        BoxShadow(color: Colors.red.withOpacity(0.3), blurRadius: 20),
                       ],
                     ),
                     child: const Icon(
@@ -415,8 +436,8 @@ class VisualizerPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    final innerRadius = 45.0;
-    final outerRadius = 85.0;
+    final innerRadius = 38.0;
+    final outerRadius = 65.0;
     final barCount = 64;
     final segmentCount = 10;
     final segmentGap = 1.0;
@@ -443,13 +464,14 @@ class VisualizerPainter extends CustomPainter {
         final paint = Paint()..style = PaintingStyle.fill;
 
         if (!lit && !partiallyLit) {
-          paint.color = Colors.white.withOpacity(0.15); // increased base visibility
+          paint.color = Colors.white.withOpacity(0.08); // slightly dimmer base for dark red theme
         } else {
           final t = s / (segmentCount - 1);
-          final r = (0 + t * 255).round();
-          final g = (220 - t * 180).round();
-          final b = (255 - t * 30).round();
-          final opacity = 0.75 + t * 0.25;
+          // Reversed palette: Bright crimson at the bottom (t=0) fading to dark maroon at the top (t=1)
+          final r = (190 - t * 140).round(); // 190 to 50
+          final g = (10 - t * 10).round();   // 10 to 0
+          final b = (10 - t * 10).round();   // 10 to 0
+          final opacity = 1.0 - t * 0.25;    // Optional: make the tips slightly more transparent
           paint.color = Color.fromRGBO(r, g, b, opacity);
         }
 
