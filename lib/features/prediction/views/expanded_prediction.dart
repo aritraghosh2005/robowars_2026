@@ -27,7 +27,7 @@ class _ExpandedPredictionState extends State<ExpandedPrediction> {
             child: Text(
               'YOUR PREDICTION',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'Space Grotesk',
                 color: AppColors.primary,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,

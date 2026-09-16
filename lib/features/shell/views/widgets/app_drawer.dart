@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/about/views/about_screen.dart';
 import 'package:robowars_app/features/profile/views/profile_screen.dart';
 import 'package:robowars_app/features/teams/views/teams_screen.dart';
 import 'package:robowars_app/shared/utils/route_transitions.dart';
-import 'package:robowars_app/features/shell/views/widgets/audio_visualizer.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -51,7 +51,7 @@ class AppDrawer extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Aritra Ghosh',
+                            'RoboWarrior',
                             style: TextStyle(
                               fontFamily: 'Space Grotesk',
                               fontSize: 16,
@@ -109,10 +109,18 @@ class AppDrawer extends StatelessWidget {
               },
             ),
 
-            const Expanded(
-              child: Center(
-                child: AudioVisualizer(),
-              ),
+            const Spacer(),
+            _buildDrawerItem(
+              icon: Icons.admin_panel_settings_outlined,
+              title: 'ADMIN PORTAL',
+              onTap: () {
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(context);
+                // TODO: wire up once an admin screen exists.
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Admin Portal coming soon')),
+                );
+              },
             ),
             const Divider(color: AppColors.border, height: 1),
             // Footer
@@ -131,9 +139,25 @@ class AppDrawer extends StatelessWidget {
                       letterSpacing: 1.0,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 20),
                   const Text(
-                    'Made with ❤️ by RoboVITics',
+                    'Powered by',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 10,
+                      color: AppColors.textMuted,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SvgPicture.asset(
+                    'assets/images/analog_devices_logo.svg',
+                    height: 48,
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Made by RoboVITics',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 10,

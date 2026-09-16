@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/shell/views/main_layout.dart';
 import 'package:robowars_app/shared/widgets/cyber_marquee.dart';
@@ -297,8 +298,8 @@ class _SplashScreenState extends State<SplashScreen>
                 child: SizedBox(
                   width: currentSize,
                   height: currentSize,
-                  child: Image.asset(
-                    'assets/images/app_logo.png',
+                  child: SvgPicture.asset(
+                    'assets/images/robowars_logo.svg',
                     fit: BoxFit.contain,
                   ),
                 ),

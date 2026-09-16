@@ -47,7 +47,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Aritra Ghosh',
+                'RoboWarrior',
                 style: const TextStyle(
                   fontFamily: 'Space Grotesk',
                   fontSize: 24,

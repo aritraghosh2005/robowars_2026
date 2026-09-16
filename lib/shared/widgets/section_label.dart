@@ -23,7 +23,7 @@ class SectionLabel extends StatelessWidget {
         Text(
           text,
           style: const TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: 'Space Grotesk',
             fontSize: 11,
             fontWeight: FontWeight.w700,
             color: AppColors.primary,

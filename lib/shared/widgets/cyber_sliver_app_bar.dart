@@ -7,11 +7,18 @@ class CyberSliverAppBar extends StatelessWidget {
   final String title;
   /// Optional callback when the menu/drawer icon is tapped.
   final VoidCallback? onMenuTap;
+  /// Optional override for tapping the leading logo. Defaults to opening
+  /// the drawer (via [onMenuTap]) when not provided.
+  final VoidCallback? onLogoTap;
+  /// Shows a hamburger menu action on the trailing side, wired to [onMenuTap].
+  final bool showMenuButton;
 
   const CyberSliverAppBar({
     super.key,
     required this.title,
     this.onMenuTap,
+    this.onLogoTap,
+    this.showMenuButton = false,
   });
 
   @override
@@ -37,7 +44,7 @@ class CyberSliverAppBar extends StatelessWidget {
             ),
           ] else ...[
             GestureDetector(
-              onTap: onMenuTap ?? () => Scaffold.of(context).openDrawer(),
+              onTap: onLogoTap ?? onMenuTap ?? () => Scaffold.of(context).openDrawer(),
               child: Padding(
                 padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
                 child: Image.asset(
@@ -60,6 +67,13 @@ class CyberSliverAppBar extends StatelessWidget {
           letterSpacing: 2.0,
         ),
       ),
+      actions: [
+        if (showMenuButton)
+          IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.primary),
+            onPressed: onMenuTap,
+          ),
+      ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(height: 1, color: AppColors.border),
