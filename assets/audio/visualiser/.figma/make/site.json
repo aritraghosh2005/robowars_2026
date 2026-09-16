@@ -1,0 +1,10 @@
+{
+  "description": "Engage with music through an interactive audio visualizer featuring a central play/pause button, perfect for enhancing user experience and creativity.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
