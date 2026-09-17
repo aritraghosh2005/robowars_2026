@@ -44,7 +44,6 @@ app.*.map.json
 
 # custom ignores
 assets/website
-assets/loading
 assets/result
 assets/results
 
