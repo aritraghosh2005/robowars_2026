@@ -6,8 +6,8 @@ class FcmService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
   Future<void> initialize() async {
-    // Request permission (Required for iOS, web)
-    NotificationSettings settings = await _messaging.requestPermission(
+    // Request permission (required on iOS and web)
+    final settings = await _messaging.requestPermission(
       alert: true,
       announcement: false,
       badge: true,
@@ -18,42 +18,38 @@ class FcmService {
     );
 
     if (kDebugMode) {
-      print('User granted permission: ${settings.authorizationStatus}');
+      print('FCM permission: ${settings.authorizationStatus}');
     }
 
-    // Handle background messages
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // Background message handler is not supported on web.
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    }
   }
 
   Future<void> subscribeBasedOnRole(AppUser user) async {
-    // First unsubscribe from previous potential roles to avoid overlap
+    // Topic subscriptions are Android/iOS only — not supported on web.
+    if (kIsWeb) return;
+
+    // Unsubscribe from previous role topics to avoid overlap.
     await _messaging.unsubscribeFromTopic('participants');
     if (user.teamId != null) {
-      await _messaging.unsubscribeFromTopic('team_${user.teamId}');
+      await _messaging.unsubscribeFromTopic(user.teamId!);
     }
 
-    // Subscribe based on current role
     if (user.role == UserRole.participant) {
       await _messaging.subscribeToTopic('participants');
       if (user.teamId != null) {
-        await _messaging.subscribeToTopic('team_${user.teamId}');
-        if (kDebugMode) {
-          print('Subscribed to topic: team_${user.teamId}');
-        }
-      }
-      if (kDebugMode) {
-        print('Subscribed to topic: participants');
+        await _messaging.subscribeToTopic(user.teamId!);
+        if (kDebugMode) print('FCM subscribed: ${user.teamId}');
       }
     }
   }
 }
 
-// Background message handler must be a top-level function
+// Background message handler must be a top-level function.
+// Only called on Android/iOS — never on web.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `initializeApp` before using other Firebase services.
-  if (kDebugMode) {
-    print("Handling a background message: ${message.messageId}");
-  }
+  if (kDebugMode) print('Background message: ${message.messageId}');
 }

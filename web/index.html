@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Robowars 2026 — The ultimate robot combat championship. Live scores, match schedule, team standings and more.">
+  <meta name="theme-color" content="#0A0A0A">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Robowars 2026">
+  <meta property="og:description" content="The ultimate robot combat championship by RoboVITics.">
+  <meta property="og:type" content="website">
+
+  <!-- iOS -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Robowars 2026">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Robowars 2026</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Splash screen while Flutter loads */
+    body {
+      margin: 0;
+      background-color: #0A0A0A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Inter', sans-serif;
+    }
+    #loading-screen {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    #loading-screen::before {
+      content: "⚙";
+      display: block;
+      font-size: 48px;
+      color: #C0122A;
+      margin-bottom: 20px;
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    /* Hide once Flutter takes over */
+    .flutter-loading #loading-screen { display: none; }
+  </style>
+</head>
+<body>
+  <div id="loading-screen">Robowars 2026</div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

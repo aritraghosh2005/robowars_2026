@@ -12,7 +12,20 @@
           "package_name": "robowars.com.robowars_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "574243597150-cp7b438t5jso0oqi8dnsimv60m2qjl2m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "robowars.com.robowars_app",
+            "certificate_hash": "75a5794900bacae9e1788d70c8f7896639370d26"
+          }
+        },
+        {
+          "client_id": "574243597150-fse64u0ih9f93nplbksqssr389kps2bl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCI0o-DLafrdy1C-5Ue4gPmuA2NlP6-31g"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "574243597150-fse64u0ih9f93nplbksqssr389kps2bl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
