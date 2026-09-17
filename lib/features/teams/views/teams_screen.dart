@@ -4,7 +4,8 @@ import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/teams/models/team.dart';
 import 'package:robowars_app/features/teams/viewmodels/teams_viewmodel.dart';
 import 'package:robowars_app/features/teams/views/widgets/team_detail_popup.dart';
-import 'package:robowars_app/shared/widgets/cyber_sliver_app_bar.dart';
+import 'package:robowars_app/shared/widgets/weight_filter_chips.dart';
+import 'package:robowars_app/shared/widgets/secondary_app_bar.dart';
 
 class TeamScreen extends ConsumerWidget {
   const TeamScreen({super.key});
@@ -18,23 +19,54 @@ class TeamScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          CyberSliverAppBar(
+          SecondarySliverAppBar(
             title: state.isTeamsSelected ? 'TEAMS' : 'LEADERBOARD',
-            onMenuTap: () => Scaffold.of(context).openDrawer(),
           ),
 
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              child: _buildToggle(state.isTeamsSelected, vm),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Column(
+                children: [
+                  _buildToggle(state.isTeamsSelected, vm),
+                  const SizedBox(height: 16),
+                  WeightFilterChips(
+                    categories: const ['All', '8kg', '15kg', '60kg'],
+                    selectedCategory: state.selectedWeightCategory,
+                    onSelected: (category) => vm.setWeightCategory(category),
+                  ),
+                ],
+              ),
             ),
           ),
 
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-            sliver: state.isTeamsSelected
-                ? _buildTeamsList(context, state.teams)
-                : _buildTableView(state.teams),
+            sliver: state.teams.when(
+              data: (_) {
+                final filteredTeams = vm.filteredTeams;
+                if (filteredTeams.isEmpty) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Text('No teams found for this category.', style: TextStyle(color: Colors.white)),
+                    ),
+                  );
+                }
+                return state.isTeamsSelected
+                    ? _buildTeamsList(context, filteredTeams)
+                    : _buildTableView(filteredTeams);
+              },
+              loading: () => const SliverToBoxAdapter(
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+              error: (e, st) => SliverToBoxAdapter(
+                child: Center(
+                  child: Text('Error loading teams: $e', style: const TextStyle(color: Colors.red)),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -149,9 +181,9 @@ class TeamScreen extends ConsumerWidget {
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.12),
+                                color: AppColors.primary.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+                                border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
                               ),
                               child: Text(
                                 '${bot.name} · ${bot.weight}',
@@ -191,10 +223,10 @@ class TeamScreen extends ConsumerWidget {
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: isTopThree ? AppColors.primary.withOpacity(0.08) : AppColors.surface,
+              color: isTopThree ? AppColors.primary.withValues(alpha: 0.08) : AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isTopThree ? AppColors.primary.withOpacity(0.3) : AppColors.border,
+                color: isTopThree ? AppColors.primary.withValues(alpha: 0.3) : AppColors.border,
                 width: 1,
               ),
             ),

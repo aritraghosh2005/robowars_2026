@@ -4,6 +4,10 @@ import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/schedule/models/match.dart';
 import 'package:robowars_app/features/schedule/viewmodels/schedule_viewmodel.dart';
 import 'package:robowars_app/shared/widgets/cyber_sliver_app_bar.dart';
+import 'package:robowars_app/shared/widgets/weight_filter_chips.dart';
+import 'package:robowars_app/shared/widgets/tab_loading_wrapper.dart';
+import 'package:robowars_app/features/prediction/views/prediction_popup.dart';
+import 'package:robowars_app/features/notifications/views/notification_drawer.dart';
 
 class Schedule extends ConsumerWidget {
   const Schedule({super.key});
@@ -15,27 +19,61 @@ class Schedule extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
+      endDrawer: const NotificationDrawer(),
+      body: TabLoadingWrapper(
+        headerSlivers: [
           CyberSliverAppBar(
             title: 'SCHEDULE',
             onMenuTap: () => Scaffold.of(context).openDrawer(),
           ),
-
+        ],
+        contentSlivers: [
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              child: _buildTabBar(state.selectedTab, vm),
+              child: Column(
+                children: [
+                  _buildTabBar(state.selectedTab, vm),
+                  const SizedBox(height: 16),
+                  WeightFilterChips(
+                    categories: const ['All', '8kg', '15kg', '60kg'],
+                    selectedCategory: state.selectedWeightCategory,
+                    onSelected: (category) => vm.setWeightCategory(category),
+                  ),
+                ],
+              ),
             ),
           ),
 
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) =>
-                    _buildMatchCard(state.matches[index], state.selectedTab),
-                childCount: state.matches.length,
+            sliver: state.matches.when(
+              data: (_) {
+                final filteredMatches = vm.filteredMatches;
+                if (filteredMatches.isEmpty) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Text('No matches scheduled for this category.', style: TextStyle(color: Colors.white)),
+                    ),
+                  );
+                }
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) =>
+                        _buildMatchCard(filteredMatches[index], state.selectedTab),
+                    childCount: filteredMatches.length,
+                  ),
+                );
+              },
+              loading: () => const SliverToBoxAdapter(
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+              error: (e, st) => SliverToBoxAdapter(
+                child: Center(
+                  child: Text('Error loading matches: $e', style: const TextStyle(color: Colors.red)),
+                ),
               ),
             ),
           ),
@@ -107,9 +145,9 @@ class Schedule extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     match.category,
@@ -243,6 +281,49 @@ class Schedule extends ConsumerWidget {
               ],
             ),
           ),
+          
+          if (isUpcoming) ...[
+            const Divider(color: AppColors.border, height: 1),
+            Consumer(
+              builder: (context, ref, child) {
+                return InkWell(
+                  onTap: () {
+                    // Show prediction popup
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.black87,
+                      builder: (context) => PredictionPopup(match: match),
+                    );
+                  },
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(14),
+                    bottomRight: Radius.circular(14),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.online_prediction, color: AppColors.primary, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'PREDICT WINNER',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                            letterSpacing: 1.2,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 
 /// Shared SliverAppBar used by all feature screens.
@@ -7,18 +8,14 @@ class CyberSliverAppBar extends StatelessWidget {
   final String title;
   /// Optional callback when the menu/drawer icon is tapped.
   final VoidCallback? onMenuTap;
-  /// Optional override for tapping the leading logo. Defaults to opening
-  /// the drawer (via [onMenuTap]) when not provided.
+  /// Optional override for tapping the trailing logo. Defaults to null.
   final VoidCallback? onLogoTap;
-  /// Shows a hamburger menu action on the trailing side, wired to [onMenuTap].
-  final bool showMenuButton;
 
   const CyberSliverAppBar({
     super.key,
     required this.title,
     this.onMenuTap,
     this.onLogoTap,
-    this.showMenuButton = false,
   });
 
   @override
@@ -32,31 +29,17 @@ class CyberSliverAppBar extends StatelessWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
-      leadingWidth: canPop ? 56 : 70,
-      leading: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (canPop) ...[
-            const SizedBox(width: 4),
-            IconButton(
+      leadingWidth: 56,
+      leading: canPop
+          ? IconButton(
               icon: const Icon(Icons.arrow_back, color: AppColors.primary),
               onPressed: () => Navigator.pop(context),
+            )
+          : IconButton(
+              icon: const Icon(Icons.menu, color: AppColors.primary),
+              onPressed: onMenuTap ?? () => Scaffold.of(context).openDrawer(),
             ),
-          ] else ...[
-            GestureDetector(
-              onTap: onLogoTap ?? onMenuTap ?? () => Scaffold.of(context).openDrawer(),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
-                child: Image.asset(
-                  'assets/images/app_logo.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-      centerTitle: false,
+      centerTitle: true,
       title: Text(
         title,
         style: const TextStyle(
@@ -68,11 +51,25 @@ class CyberSliverAppBar extends StatelessWidget {
         ),
       ),
       actions: [
-        if (showMenuButton)
-          IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.primary),
-            onPressed: onMenuTap,
+        IconButton(
+          icon: const Badge(
+            backgroundColor: Colors.red,
+            child: Icon(Icons.notifications, color: Colors.white),
           ),
+          onPressed: () => Scaffold.of(context).openEndDrawer(),
+        ),
+        GestureDetector(
+          onTap: onLogoTap,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            child: SvgPicture.asset(
+              'assets/images/robowars_logo.svg',
+              fit: BoxFit.contain,
+              width: 40,
+              colorFilter: const ColorFilter.mode(AppColors.primary, BlendMode.srcIn),
+            ),
+          ),
+        ),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),

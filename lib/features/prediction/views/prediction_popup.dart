@@ -3,8 +3,11 @@ import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/prediction/views/leaderboard_tab.dart';
 import 'package:robowars_app/features/prediction/views/prediction_tab.dart';
 
+import 'package:robowars_app/features/schedule/models/match.dart';
+
 class PredictionPopup extends StatefulWidget {
-  const PredictionPopup({super.key});
+  final Match match;
+  const PredictionPopup({super.key, required this.match});
 
   @override
   State<PredictionPopup> createState() => _PredictionPopupState();
@@ -75,7 +78,7 @@ class _PredictionPopupState extends State<PredictionPopup>
             border: Border.all(color: AppColors.border, width: 1),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.15),
+                color: AppColors.primary.withValues(alpha: 0.15),
                 blurRadius: 24,
                 spreadRadius: 2,
               ),
@@ -162,6 +165,7 @@ class _PredictionPopupState extends State<PredictionPopup>
                       children: [
                         SingleChildScrollView(
                           child: PredictionTab(
+                            match: widget.match,
                             onTabClicked: () =>
                                 setState(() => _isLeaderboardTabActive = false),
                             onExpandChanged: _handlePredictionExpand,

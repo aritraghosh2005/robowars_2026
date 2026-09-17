@@ -1,24 +1,30 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:robowars_app/features/schedule/models/match.dart';
+import 'package:robowars_app/services/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'schedule_viewmodel.g.dart';
 
 class ScheduleState {
-  final List<Match> matches;
+  final AsyncValue<List<Match>> matches;
   final String selectedTab;
+  final String selectedWeightCategory;
 
   const ScheduleState({
-    required this.matches,
+    this.matches = const AsyncLoading(),
     this.selectedTab = 'Upcoming',
+    this.selectedWeightCategory = 'All',
   });
 
   ScheduleState copyWith({
-    List<Match>? matches,
+    AsyncValue<List<Match>>? matches,
     String? selectedTab,
+    String? selectedWeightCategory,
   }) {
     return ScheduleState(
       matches: matches ?? this.matches,
       selectedTab: selectedTab ?? this.selectedTab,
+      selectedWeightCategory: selectedWeightCategory ?? this.selectedWeightCategory,
     );
   }
 }
@@ -28,38 +34,32 @@ class ScheduleState {
 class ScheduleViewModel extends _$ScheduleViewModel {
   @override
   ScheduleState build() {
-    return const ScheduleState(
-      matches: [
-        Match(
-          team1: 'Team Shadow', bot1: 'Dark Matter',
-          team2: 'Team Xenon', bot2: 'Cyclone X',
-          category: '60 kg', time: '9:00 AM', winner: 'Team Shadow',
-        ),
-        Match(
-          team1: 'Team Phoenix', bot1: 'Inferno',
-          team2: 'Team Nexus', bot2: 'Storm Rider',
-          category: '15 kg', time: '10:30 AM', winner: 'Team Phoenix',
-        ),
-        Match(
-          team1: 'Team Orcus', bot1: 'Raven',
-          team2: 'Team Venom', bot2: 'Serpent',
-          category: '8 kg', time: '12:00 PM', winner: 'Team Orcus',
-        ),
-        Match(
-          team1: 'Team Thunder', bot1: 'Bolt',
-          team2: 'Team Titan', bot2: 'Colossus',
-          category: '60 kg', time: '2:00 PM', winner: 'Team Thunder',
-        ),
-        Match(
-          team1: 'Team Blaze', bot1: 'Firestorm',
-          team2: 'Team Ice', bot2: 'Glacier',
-          category: '15 kg', time: '3:30 PM', winner: 'Team Blaze',
-        ),
-      ],
+    final matchDao = ref.watch(matchDaoProvider);
+
+    ref.listen<AsyncValue<List<Match>>>(
+      StreamProvider((ref) => matchDao.watchMatches()),
+      (previous, next) {
+        state = state.copyWith(matches: next);
+      },
+      fireImmediately: true,
     );
+
+    return const ScheduleState();
   }
 
   void setTab(String tab) {
     state = state.copyWith(selectedTab: tab);
+  }
+
+  void setWeightCategory(String category) {
+    state = state.copyWith(selectedWeightCategory: category);
+  }
+
+  List<Match> get filteredMatches {
+    final allMatches = state.matches.asData?.value ?? [];
+    if (state.selectedWeightCategory == 'All') {
+      return allMatches;
+    }
+    return allMatches.where((match) => match.category == state.selectedWeightCategory).toList();
   }
 }

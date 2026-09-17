@@ -44,7 +44,7 @@ final class ScheduleViewModelProvider
   }
 }
 
-String _$scheduleViewModelHash() => r'ab5cb2a3944c7f90691c475670c1191489f9940a';
+String _$scheduleViewModelHash() => r'6c5ded706d7278d04a9f5bd8a7044d3f8a50f1b8';
 
 /// Manages the schedule screen state: match data and the selected tab.
 

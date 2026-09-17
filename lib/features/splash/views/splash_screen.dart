@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
-import 'package:robowars_app/features/shell/views/main_layout.dart';
 import 'package:robowars_app/shared/widgets/cyber_marquee.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -108,17 +108,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     _masterController.forward().then((_) {
       if (mounted) {
-        // Now that the logo is perfectly in the corner, push the home screen!
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 500),
-            pageBuilder: (_, __, ___) => const MainLayout(),
-            transitionsBuilder: (_, animation, __, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-          ),
-        );
+        // Let GoRouter redirect decide where to go based on auth state
+        context.go('/home');
       }
     });
   }
@@ -234,7 +225,7 @@ class _SplashScreenState extends State<SplashScreen>
                                             boxShadow: [
                                               BoxShadow(
                                                 color: AppColors.primaryGlow
-                                                    .withOpacity(0.6),
+                                                    .withValues(alpha: 0.6),
                                                 blurRadius: 8,
                                                 spreadRadius: 1,
                                               ),
@@ -285,8 +276,8 @@ class _SplashScreenState extends State<SplashScreen>
               final double startX = (screenWidth / 2) + (alignX * screenWidth / 2) - (currentSize / 2);
               final double startY = (screenHeight / 2) + (alignY * screenHeight / 2) - (currentSize / 2);
 
-              // End position (Top Left App Bar icon position)
-              const double endX = 16.0;
+              // End position (Top Right App Bar logo position)
+              final double endX = screenWidth - 16.0 - finalSize;
               final double endY = topPadding + 8.0;
 
               final double currentX = flight == 0 ? startX : startX + (endX - startX) * flight;
@@ -301,6 +292,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: SvgPicture.asset(
                     'assets/images/robowars_logo.svg',
                     fit: BoxFit.contain,
+                    colorFilter: const ColorFilter.mode(AppColors.primary, BlendMode.srcIn),
                   ),
                 ),
               );

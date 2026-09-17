@@ -13,7 +13,7 @@ class TeamDetailPopup extends StatelessWidget {
       context: context,
       barrierLabel: 'Team',
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.7),
+      barrierColor: Colors.black.withValues(alpha: 0.7),
       transitionDuration: const Duration(milliseconds: 250),
       transitionBuilder: (context, anim1, anim2, child) {
         return FadeTransition(
@@ -108,9 +108,9 @@ class TeamDetailPopup extends StatelessWidget {
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.12),
+                              color: AppColors.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
                             ),
                             child: Text(
                               '${bot.name}  ·  ${bot.weight}',

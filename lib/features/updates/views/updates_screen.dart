@@ -4,6 +4,9 @@ import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/updates/models/update_item.dart';
 import 'package:robowars_app/features/updates/viewmodels/updates_viewmodel.dart';
 import 'package:robowars_app/shared/widgets/cyber_sliver_app_bar.dart';
+import 'package:robowars_app/features/notifications/views/notification_drawer.dart';
+
+import 'package:robowars_app/shared/widgets/tab_loading_wrapper.dart';
 
 class UpdatesScreen extends ConsumerWidget {
   const UpdatesScreen({super.key});
@@ -14,18 +17,42 @@ class UpdatesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
+      endDrawer: const NotificationDrawer(),
+      body: TabLoadingWrapper(
+        headerSlivers: [
           CyberSliverAppBar(
             title: 'UPDATES',
             onMenuTap: () => Scaffold.of(context).openDrawer(),
           ),
+        ],
+        contentSlivers: [
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildUpdateCard(updates[index]),
-                childCount: updates.length,
+            sliver: updates.when(
+              data: (updatesData) {
+                if (updatesData.isEmpty) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Text('No updates yet.', style: TextStyle(color: Colors.white)),
+                    ),
+                  );
+                }
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => _buildUpdateCard(updatesData[index]),
+                    childCount: updatesData.length,
+                  ),
+                );
+              },
+              loading: () => const SliverToBoxAdapter(
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+              error: (e, st) => SliverToBoxAdapter(
+                child: Center(
+                  child: Text('Error loading updates: $e', style: const TextStyle(color: Colors.red)),
+                ),
               ),
             ),
           ),
@@ -55,9 +82,9 @@ class UpdatesScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: tagColor.withOpacity(0.12),
+                    color: tagColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: tagColor.withOpacity(0.4)),
+                    border: Border.all(color: tagColor.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     update.tag.label,

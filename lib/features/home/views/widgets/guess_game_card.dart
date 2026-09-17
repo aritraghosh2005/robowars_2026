@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/home/models/matchup.dart';
+import 'package:robowars_app/features/schedule/models/match.dart';
 import 'package:robowars_app/features/prediction/views/prediction_popup.dart';
 
 class GuessGameCard extends StatefulWidget {
@@ -57,9 +58,9 @@ class _GuessGameCardState extends State<GuessGameCard> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.15),
+                              color: AppColors.primary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
                             ),
                             child: Text(
                               m.category,
@@ -113,7 +114,18 @@ class _GuessGameCardState extends State<GuessGameCard> {
                         child: TextButton(
                           onPressed: () => showDialog(
                             context: context,
-                            builder: (context) => const PredictionPopup(),
+                            builder: (context) => PredictionPopup(
+                              match: Match(
+                                id: 'mock_${m.team1}_${m.team2}',
+                                team1: m.team1,
+                                team2: m.team2,
+                                bot1: m.bot1,
+                                bot2: m.bot2,
+                                category: m.category,
+                                time: '10:00 AM',
+                                winner: '',
+                              ),
+                            ),
                           ),
                           style: TextButton.styleFrom(
                             backgroundColor: AppColors.primary,

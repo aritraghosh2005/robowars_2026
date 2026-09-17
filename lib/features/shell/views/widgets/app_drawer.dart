@@ -6,11 +6,24 @@ import 'package:robowars_app/features/profile/views/profile_screen.dart';
 import 'package:robowars_app/features/teams/views/teams_screen.dart';
 import 'package:robowars_app/shared/utils/route_transitions.dart';
 
-class AppDrawer extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:robowars_app/core/auth/auth_providers.dart';
+import 'package:robowars_app/core/config/config_providers.dart';
+import 'package:robowars_app/features/auth/models/app_user.dart';
+import 'package:robowars_app/features/admin/auth/admin_service.dart';
+import 'package:robowars_app/services/service_providers.dart';
+
+class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final roleState = ref.watch(roleServiceProvider).asData?.value;
+    final isAdmin = roleState?.service is AdminService || user?.role == UserRole.admin;
+    final moodMessage = ref.watch(moodMessageProvider).asData?.value ?? "Keep the energy high today!";
+
     return Drawer(
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
@@ -24,14 +37,16 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(24.0),
               child: GestureDetector(
                 onTap: () {
-                  final scaffold = Scaffold.of(context);
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    SlideRightRoute(page: const ProfileScreen()),
-                  ).then((_) {
-                    scaffold.openDrawer();
-                  });
+                  Navigator.pop(context); // close drawer
+                  if (user == null) {
+                    context.push('/auth');
+                  } else {
+                    // Navigate to profile if logged in
+                    Navigator.push(
+                      context,
+                      SlideRightRoute(page: const ProfileScreen()),
+                    );
+                  }
                 },
                 child: Row(
                   children: [
@@ -43,26 +58,31 @@ class AppDrawer extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.primary, width: 2),
                       ),
-                      child: const Icon(Icons.person_outline, size: 30, color: AppColors.textSecondary),
+                      clipBehavior: Clip.hardEdge,
+                      child: user?.avatarUrl != null
+                          ? Image.network(user!.avatarUrl!, fit: BoxFit.cover)
+                          : const Icon(Icons.person_outline, size: 30, color: AppColors.textSecondary),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'RoboWarrior',
-                            style: TextStyle(
+                            user?.displayName ?? 'Guest',
+                            style: const TextStyle(
                               fontFamily: 'Space Grotesk',
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'View Profile',
-                            style: TextStyle(
+                            user != null ? user.role.name : 'Sign In',
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 12,
                               color: AppColors.primary,
@@ -76,6 +96,31 @@ class AppDrawer extends StatelessWidget {
                 ),
               ),
             ),
+            
+            // Mood Message
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+              color: AppColors.primary.withValues(alpha: 0.05),
+              child: Row(
+                children: [
+                  const Text('💬', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      moodMessage,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const Divider(color: AppColors.border, height: 1),
             const SizedBox(height: 16),
 
@@ -108,20 +153,17 @@ class AppDrawer extends StatelessWidget {
                 });
               },
             ),
+            if (isAdmin)
+              _buildDrawerItem(
+                icon: Icons.shield_outlined,
+                title: 'ADMIN CONSOLE',
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/admin');
+                },
+              ),
 
             const Spacer(),
-            _buildDrawerItem(
-              icon: Icons.admin_panel_settings_outlined,
-              title: 'ADMIN PORTAL',
-              onTap: () {
-                final messenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context);
-                // TODO: wire up once an admin screen exists.
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Admin Portal coming soon')),
-                );
-              },
-            ),
             const Divider(color: AppColors.border, height: 1),
             // Footer
             Padding(
@@ -193,7 +235,7 @@ class AppDrawer extends StatelessWidget {
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      hoverColor: AppColors.primary.withOpacity(0.1),
+      hoverColor: AppColors.primary.withValues(alpha: 0.1),
     );
   }
 }

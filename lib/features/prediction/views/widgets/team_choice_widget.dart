@@ -19,7 +19,7 @@ class TeamChoiceWidget extends StatelessWidget {
       width: 110,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isExpanded ? AppColors.primary.withOpacity(0.15) : AppColors.surfaceAlt,
+        color: isExpanded ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surfaceAlt,
         border: Border.all(
           color: isExpanded ? AppColors.primary : AppColors.border,
           width: 1.5,

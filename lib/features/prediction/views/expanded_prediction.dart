@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
+import 'package:robowars_app/features/schedule/models/match.dart';
+import 'package:robowars_app/features/prediction/viewmodels/prediction_viewmodel.dart';
+import 'package:robowars_app/core/auth/auth_providers.dart';
 
 class ExpandedPrediction extends StatefulWidget {
-  final Widget choice;
-  const ExpandedPrediction({super.key, required this.choice});
+  final Match match;
+  final String selectedTeam;
+  const ExpandedPrediction({super.key, required this.match, required this.selectedTeam});
 
   @override
   State<ExpandedPrediction> createState() => _ExpandedPredictionState();
@@ -39,11 +44,81 @@ class _ExpandedPredictionState extends State<ExpandedPrediction> {
             padding: const EdgeInsets.all(12),
             alignment: Alignment.centerLeft,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
             ),
-            child: widget.choice,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.selectedTeam,
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+                const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Consumer(
+            builder: (context, ref, child) {
+              final predictionState = ref.watch(predictionViewModelProvider);
+              
+              return SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: predictionState.isLoading
+                      ? null
+                      : () async {
+                          final currentUser = ref.read(currentUserProvider);
+                          if (currentUser == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please login to make a prediction')),
+                            );
+                            Navigator.of(context).pop();
+                            return;
+                          }
+                          await ref.read(predictionViewModelProvider.notifier).submitPrediction(
+                                widget.match,
+                                widget.selectedTeam,
+                              );
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Prediction submitted successfully!')),
+                            );
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: predictionState.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'CONFIRM PREDICTION',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                ),
+              );
+            },
           ),
         ],
       ),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "574243597150",
+    "project_id": "robowars-2k26",
+    "storage_bucket": "robowars-2k26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:574243597150:android:603c85bf73518d48457dcf",
+        "android_client_info": {
+          "package_name": "robowars.com.robowars_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCI0o-DLafrdy1C-5Ue4gPmuA2NlP6-31g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

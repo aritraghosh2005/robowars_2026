@@ -13,7 +13,7 @@ part of 'updates_viewmodel.dart';
 final updatesViewModelProvider = UpdatesViewModelProvider._();
 
 final class UpdatesViewModelProvider
-    extends $NotifierProvider<UpdatesViewModel, List<UpdateItem>> {
+    extends $NotifierProvider<UpdatesViewModel, AsyncValue<List<UpdateItem>>> {
   UpdatesViewModelProvider._()
     : super(
         from: null,
@@ -33,27 +33,33 @@ final class UpdatesViewModelProvider
   UpdatesViewModel create() => UpdatesViewModel();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(List<UpdateItem> value) {
+  Override overrideWithValue(AsyncValue<List<UpdateItem>> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<List<UpdateItem>>(value),
+      providerOverride: $SyncValueProvider<AsyncValue<List<UpdateItem>>>(value),
     );
   }
 }
 
-String _$updatesViewModelHash() => r'95026275f38225e66c689a0db29fe546806fa281';
+String _$updatesViewModelHash() => r'e1e2bfea1caf43041eff01eaf67d8de7f372a7e1';
 
-abstract class _$UpdatesViewModel extends $Notifier<List<UpdateItem>> {
-  List<UpdateItem> build();
+abstract class _$UpdatesViewModel
+    extends $Notifier<AsyncValue<List<UpdateItem>>> {
+  AsyncValue<List<UpdateItem>> build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
-    final ref = this.ref as $Ref<List<UpdateItem>, List<UpdateItem>>;
+    final ref =
+        this.ref
+            as $Ref<AsyncValue<List<UpdateItem>>, AsyncValue<List<UpdateItem>>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<List<UpdateItem>, List<UpdateItem>>,
-              List<UpdateItem>,
+              AnyNotifier<
+                AsyncValue<List<UpdateItem>>,
+                AsyncValue<List<UpdateItem>>
+              >,
+              AsyncValue<List<UpdateItem>>,
               Object?,
               Object?
             >;

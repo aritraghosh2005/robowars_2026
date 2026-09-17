@@ -44,7 +44,7 @@ final class TeamsViewModelProvider
   }
 }
 
-String _$teamsViewModelHash() => r'd08cfca5d97b694017442a86c45fa4baea1641ad';
+String _$teamsViewModelHash() => r'43ad155977a833c7dd7f6f25df1c835938597d2d';
 
 /// Single source of truth for all Teams screen data and view state.
 

@@ -8,6 +8,9 @@ import 'package:robowars_app/features/home/views/widgets/key_contenders_card.dar
 import 'package:robowars_app/features/home/views/widgets/quick_stats_card.dart';
 import 'package:robowars_app/shared/widgets/cyber_sliver_app_bar.dart';
 import 'package:robowars_app/shared/widgets/section_label.dart';
+import 'package:robowars_app/features/notifications/views/notification_drawer.dart';
+
+import 'package:robowars_app/shared/widgets/tab_loading_wrapper.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -40,25 +43,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
+      endDrawer: const NotificationDrawer(),
+      body: TabLoadingWrapper(
         controller: _scrollController,
-        slivers: [
+        headerSlivers: [
           // Shared AppBar
           CyberSliverAppBar(
             title: "ROBOWARS'26",
             onLogoTap: _scrollToTop,
-            showMenuButton: true,
             onMenuTap: () => Scaffold.of(context).openDrawer(),
           ),
-
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              child: _buildSponsorBanner(),
+            ),
+          ),
+        ],
+        contentSlivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+            padding: const EdgeInsets.fromLTRB(16, 28, 16, 120),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Sponsor banner — RoboVITics 15th anniversary mark
-                _buildSponsorBanner(),
-                const SizedBox(height: 28),
-
                 // Predict the Winner
                 const SectionLabel('PREDICT THE WINNER'),
                 const SizedBox(height: 12),

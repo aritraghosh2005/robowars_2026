@@ -70,7 +70,7 @@ class QuickStatsCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: RadialGradient(
                             colors: [
-                              AppColors.primary.withOpacity(0.12),
+                              AppColors.primary.withValues(alpha: 0.12),
                               Colors.transparent,
                             ],
                           ),

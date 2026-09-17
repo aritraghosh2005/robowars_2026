@@ -47,3 +47,8 @@ assets/website
 assets/loading
 assets/result
 assets/results
+
+# Node / Firebase Functions
+node_modules/
+functions/node_modules/
+functions/lib/

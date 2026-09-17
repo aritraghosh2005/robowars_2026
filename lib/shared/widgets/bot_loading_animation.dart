@@ -19,10 +19,10 @@ class _BotLoadingAnimationState extends State<BotLoadingAnimation>
   @override
   void initState() {
     super.initState();
-    // 700ms total loop (233ms per frame)
+    // 600ms total loop (200ms per frame)
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 600),
     )..repeat();
   }
 

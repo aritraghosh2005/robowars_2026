@@ -6,6 +6,8 @@ import 'package:robowars_app/features/schedule/views/schedule_screen.dart';
 import 'package:robowars_app/features/shell/viewmodels/navigation_viewmodel.dart';
 import 'package:robowars_app/features/shell/views/widgets/app_drawer.dart';
 import 'package:robowars_app/features/updates/views/updates_screen.dart';
+import 'package:robowars_app/shared/widgets/offline_banner.dart';
+import 'package:robowars_app/features/callups/views/callup_banner.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   const MainLayout({super.key});
@@ -15,25 +17,11 @@ class MainLayout extends ConsumerStatefulWidget {
 }
 
 class _MainLayoutState extends ConsumerState<MainLayout> {
-  late final PageController _pageController;
-
   static const List<Widget> _pages = [
     HomeScreen(),
     Schedule(),
     UpdatesScreen(),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +31,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       extendBody: true,
       backgroundColor: AppColors.background,
       drawer: const AppDrawer(),
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        onPageChanged: (index) {
-          ref.read(navigationViewModelProvider.notifier).setIndex(index);
-        },
-        children: _pages,
+      body: Column(
+        children: [
+          const CallupBanner(),
+          const OfflineBanner(),
+          Expanded(child: _pages[currentIndex]),
+        ],
       ),
       bottomNavigationBar: _buildNavBar(context, currentIndex),
     );
@@ -72,7 +59,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -94,18 +81,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     return GestureDetector(
       onTap: () {
         ref.read(navigationViewModelProvider.notifier).setIndex(index);
-        _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
       },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
+          color: isActive ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
