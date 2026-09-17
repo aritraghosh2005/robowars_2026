@@ -11,6 +11,8 @@ class AppUser {
   final UserRole role;
   final String? fcmToken;
   final String? teamId;
+  final String? teamRole;
+  final bool onboardingCompleted;
   final DateTime createdAt;
   final DateTime lastLoginAt;
 
@@ -23,6 +25,8 @@ class AppUser {
     required this.role,
     this.fcmToken,
     this.teamId,
+    this.teamRole,
+    this.onboardingCompleted = true,
     required this.createdAt,
     required this.lastLoginAt,
   });
@@ -37,9 +41,12 @@ class AppUser {
       role: _parseRole(map['role']),
       fcmToken: map['fcmToken'],
       teamId: map['teamId'],
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastLoginAt:
-          (map['lastLoginAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      teamRole: map['teamRole'],
+      onboardingCompleted:
+          map['onboardingCompleted'] as bool? ??
+          ((map['phone'] as String?)?.trim().isNotEmpty ?? false),
+      createdAt: _parseDate(map['createdAt']),
+      lastLoginAt: _parseDate(map['lastLoginAt']),
     );
   }
 
@@ -52,6 +59,8 @@ class AppUser {
       'role': role.name,
       if (fcmToken != null) 'fcmToken': fcmToken,
       if (teamId != null) 'teamId': teamId,
+      if (teamRole != null) 'teamRole': teamRole,
+      'onboardingCompleted': onboardingCompleted,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastLoginAt': Timestamp.fromDate(lastLoginAt),
     };
@@ -69,6 +78,14 @@ class AppUser {
     }
   }
 
+  static DateTime _parseDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return DateTime.now();
+  }
+
   AppUser copyWith({
     String? displayName,
     String? email,
@@ -77,6 +94,8 @@ class AppUser {
     UserRole? role,
     String? fcmToken,
     String? teamId,
+    String? teamRole,
+    bool? onboardingCompleted,
     DateTime? lastLoginAt,
   }) {
     return AppUser(
@@ -88,6 +107,8 @@ class AppUser {
       role: role ?? this.role,
       fcmToken: fcmToken ?? this.fcmToken,
       teamId: teamId ?? this.teamId,
+      teamRole: teamRole ?? this.teamRole,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
     );

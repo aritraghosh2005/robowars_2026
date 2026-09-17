@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/admin/viewmodels/match_editor_viewmodel.dart';
 import 'package:robowars_app/features/admin/viewmodels/team_editor_viewmodel.dart';
 import 'package:robowars_app/features/schedule/models/match.dart';
+import 'package:robowars_app/features/teams/models/bot_category.dart';
 
 class MatchEditorScreen extends ConsumerWidget {
   const MatchEditorScreen({super.key});
@@ -137,7 +139,7 @@ class MatchEditorScreen extends ConsumerWidget {
                                       const Icon(Icons.schedule, size: 13, color: AppColors.textMuted),
                                       const SizedBox(width: 4),
                                       Text(
-                                        match.time.isEmpty ? 'TBD' : match.time,
+                                        match.displayTime,
                                         style: const TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 12,
@@ -149,6 +151,24 @@ class MatchEditorScreen extends ConsumerWidget {
                                         constraints: const BoxConstraints(),
                                         icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
                                         onPressed: () => _openEditorDialog(context, ref, match),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      IconButton(
+                                        tooltip: 'Delete match',
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: Colors.redAccent,
+                                          size: 20,
+                                        ),
+                                        onPressed: state.isSaving
+                                            ? null
+                                            : () => _confirmDeleteMatch(
+                                                  context,
+                                                  ref,
+                                                  match,
+                                                ),
                                       ),
                                     ],
                                   ),
@@ -266,6 +286,37 @@ class MatchEditorScreen extends ConsumerWidget {
       builder: (context) => const _MatchEditorDialog(),
     );
   }
+
+  Future<void> _confirmDeleteMatch(
+    BuildContext context,
+    WidgetRef ref,
+    Match match,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete match?'),
+        content: Text(
+          'Delete ${match.team1} vs ${match.team2}? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await ref.read(matchEditorViewModelProvider.notifier).deleteMatch(match.id);
+  }
 }
 
 class _MatchEditorDialog extends ConsumerStatefulWidget {
@@ -278,8 +329,8 @@ class _MatchEditorDialog extends ConsumerStatefulWidget {
 class _MatchEditorDialogState extends ConsumerState<_MatchEditorDialog> {
   String _selectedTeam1Id = '';
   String _selectedTeam2Id = '';
-  late TextEditingController _categoryCtrl;
-  late TextEditingController _timeCtrl;
+  late String _selectedCategory;
+  DateTime? _scheduledAt;
 
   @override
   void initState() {
@@ -287,8 +338,8 @@ class _MatchEditorDialogState extends ConsumerState<_MatchEditorDialog> {
     final selectedMatch = ref.read(matchEditorViewModelProvider).selectedMatch;
     _selectedTeam1Id = selectedMatch?.team1 ?? '';
     _selectedTeam2Id = selectedMatch?.team2 ?? '';
-    _categoryCtrl = TextEditingController(text: selectedMatch?.category ?? '15kg');
-    _timeCtrl = TextEditingController(text: selectedMatch?.time ?? '');
+    _selectedCategory = BotCategory.normalize(selectedMatch?.category);
+    _scheduledAt = selectedMatch?.scheduledAt;
 
     // Ensure teams are loaded
     ref.read(teamEditorViewModelProvider);
@@ -296,9 +347,37 @@ class _MatchEditorDialogState extends ConsumerState<_MatchEditorDialog> {
 
   @override
   void dispose() {
-    _categoryCtrl.dispose();
-    _timeCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickSchedule() async {
+    final now = DateTime.now();
+    final initial = _scheduledAt ?? now.add(const Duration(hours: 1));
+    final today = DateTime(now.year, now.month, now.day);
+    final initialDay = DateTime(initial.year, initial.month, initial.day);
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: initialDay.isBefore(today) ? initialDay : today,
+      lastDate: DateTime(now.year + 2),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (time == null || !mounted) return;
+
+    setState(() {
+      _scheduledAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
   }
 
   void _showTeamSelector(BuildContext context, bool isTeam1) {
@@ -566,10 +645,14 @@ class _MatchEditorDialogState extends ConsumerState<_MatchEditorDialog> {
               ),
               const SizedBox(height: 20),
 
-              // Category Field
-              TextField(
-                controller: _categoryCtrl,
-                style: const TextStyle(color: Colors.white, fontFamily: 'Space Grotesk'),
+              // Category selector
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                dropdownColor: AppColors.surfaceAlt,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Space Grotesk',
+                ),
                 decoration: InputDecoration(
                   labelText: 'Weight Category',
                   labelStyle: const TextStyle(color: AppColors.textMuted),
@@ -583,35 +666,65 @@ class _MatchEditorDialogState extends ConsumerState<_MatchEditorDialog> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.border),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
                 ),
+                items: BotCategory.values
+                    .map(
+                      (category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(category),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (category) {
+                  if (category != null) _selectedCategory = category;
+                },
               ),
               const SizedBox(height: 14),
 
-              // Time Field
-              TextField(
-                controller: _timeCtrl,
-                style: const TextStyle(color: Colors.white, fontFamily: 'Space Grotesk'),
-                decoration: InputDecoration(
-                  labelText: 'Match Time (e.g. 10:30 AM)',
-                  labelStyle: const TextStyle(color: AppColors.textMuted),
-                  filled: true,
-                  fillColor: AppColors.surfaceAlt,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
+              // Match start date and time
+              OutlinedButton(
+                onPressed: _pickSchedule,
+                style: OutlinedButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  side: BorderSide(
+                    color: _scheduledAt == null
+                        ? AppColors.border
+                        : AppColors.primary,
                   ),
-                  enabledBorder: OutlineInputBorder(
+                  backgroundColor: AppColors.surfaceAlt,
+                  padding: const EdgeInsets.all(14),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.border),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.event_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _scheduledAt == null
+                            ? 'Select match start'
+                            : DateFormat('dd MMM yyyy, h:mm a')
+                                .format(_scheduledAt!),
+                        style: TextStyle(
+                          color: _scheduledAt == null
+                              ? AppColors.textMuted
+                              : Colors.white,
+                          fontFamily: 'Space Grotesk',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textMuted,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
@@ -634,15 +747,71 @@ class _MatchEditorDialogState extends ConsumerState<_MatchEditorDialog> {
                     onPressed: state.isSaving
                         ? null
                         : () async {
+                            final teams = ref.read(teamEditorViewModelProvider).teams;
+                            String resolveTeamId(String name, String fallback) {
+                              for (final team in teams) {
+                                if (team.name == name) return team.id;
+                              }
+                              return fallback;
+                            }
+
+                            final existing = state.selectedMatch;
+                            if (_selectedTeam1Id.isEmpty ||
+                                _selectedTeam2Id.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Select both teams.'),
+                                ),
+                              );
+                              return;
+                            }
+                            if (_scheduledAt == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Set the match start time.'),
+                                ),
+                              );
+                              return;
+                            }
+                            final resolvedTeam1Id = resolveTeamId(
+                              _selectedTeam1Id,
+                              existing?.team1Id ?? '',
+                            );
+                            final resolvedTeam2Id = resolveTeamId(
+                              _selectedTeam2Id,
+                              existing?.team2Id ?? '',
+                            );
+                            if (existing?.pointsApplied == true &&
+                                (resolvedTeam1Id != existing!.team1Id ||
+                                    resolvedTeam2Id != existing.team2Id)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Clear the saved result before changing teams.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
                             final newMatch = Match(
-                              id: state.selectedMatch?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                              id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
                               team1: _selectedTeam1Id,
                               team2: _selectedTeam2Id,
-                              bot1: state.selectedMatch?.bot1 ?? '',
-                              bot2: state.selectedMatch?.bot2 ?? '',
-                              category: _categoryCtrl.text.trim(),
-                              time: _timeCtrl.text.trim(),
-                              winner: state.selectedMatch?.winner ?? '',
+                              team1Id: resolvedTeam1Id,
+                              team2Id: resolvedTeam2Id,
+                              bot1: existing?.bot1 ?? '',
+                              bot2: existing?.bot2 ?? '',
+                              category: _selectedCategory,
+                              time: DateFormat(
+                                'dd MMM yyyy, hh:mm a',
+                              ).format(_scheduledAt!),
+                              scheduledAt: _scheduledAt,
+                              winner: existing?.winner ?? '',
+                              winnerId: existing?.winnerId ?? '',
+                              team1Points: existing?.team1Points ?? 0,
+                              team2Points: existing?.team2Points ?? 0,
+                              status: existing?.status ?? 'scheduled',
+                              pointsApplied: existing?.pointsApplied ?? false,
                             );
                             await ref.read(matchEditorViewModelProvider.notifier).saveMatch(newMatch);
                             if (context.mounted) Navigator.pop(context);

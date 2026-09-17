@@ -1,3 +1,5 @@
+import 'package:robowars_app/features/teams/models/bot_category.dart';
+
 /// Represents a single robot/bot entry for a team.
 class Bot {
   final String name;
@@ -8,7 +10,7 @@ class Bot {
   factory Bot.fromMap(Map<String, dynamic> map) {
     return Bot(
       name: map['name'] ?? '',
-      weight: map['weight'] ?? '',
+      weight: BotCategory.normalize(map['weight'] as String?),
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -15,9 +17,9 @@ class FirebaseAuthRepository implements AuthRepository {
     FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
     GoogleSignIn? googleSignIn,
-  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   // ---------------------------------------------------------------------------
   // Auth State Stream
@@ -25,20 +27,53 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Stream<AppUser?> authStateChanges() {
-    return _firebaseAuth.authStateChanges().asyncMap((user) async {
-      if (user == null) return null;
-      try {
-        final doc = await _firestore.collection('users').doc(user.uid).get();
-        if (doc.exists && doc.data() != null) {
-          return AppUser.fromMap(doc.data()!, doc.id);
-        }
-        // No document yet — create a basic one so the stream never hangs
-        return _buildBasicUser(user);
-      } catch (e) {
-        // Offline or Firestore not yet set up — return a minimal user object
-        return _buildBasicUser(user);
+    late final StreamController<AppUser?> controller;
+    StreamSubscription<User?>? authSubscription;
+    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+    userSubscription;
+
+    Future<void> watchUser(User? firebaseUser) async {
+      await userSubscription?.cancel();
+      userSubscription = null;
+      if (controller.isClosed) return;
+
+      if (firebaseUser == null) {
+        controller.add(null);
+        return;
       }
-    });
+
+      userSubscription = _firestore
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .snapshots()
+          .listen(
+            (doc) {
+              if (controller.isClosed) return;
+              final data = doc.data();
+              controller.add(
+                data == null
+                    ? _buildBasicUser(firebaseUser)
+                    : AppUser.fromMap(data, doc.id),
+              );
+            },
+            onError: (_) {
+              if (!controller.isClosed) {
+                controller.add(_buildBasicUser(firebaseUser));
+              }
+            },
+          );
+    }
+
+    controller = StreamController<AppUser?>();
+    controller.onListen = () {
+      authSubscription = _firebaseAuth.authStateChanges().listen(watchUser);
+    };
+    controller.onCancel = () async {
+      await userSubscription?.cancel();
+      await authSubscription?.cancel();
+      await controller.close();
+    };
+    return controller.stream;
   }
 
   @override
@@ -55,13 +90,13 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   // ---------------------------------------------------------------------------
-  // Google Sign-In  (Viewers)
+  // Google Sign-In
   // ---------------------------------------------------------------------------
 
   @override
-  Future<void> signInWithGoogle() async {
+  Future<bool> signInWithGoogle() async {
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) return; // user cancelled
+    if (googleUser == null) return false;
 
     final googleAuth = await googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
@@ -70,90 +105,12 @@ class FirebaseAuthRepository implements AuthRepository {
     );
 
     final userCred = await _firebaseAuth.signInWithCredential(credential);
-    final firebaseUser = userCred.user!;
-
-    // Check admin status exclusively via the Firestore admins allowlist.
-    // No hardcoded emails — all admin grants are managed server-side.
-    UserRole assignedRole = UserRole.viewer;
-    if (firebaseUser.email != null) {
-      try {
-        final adminQuery = await _firestore
-            .collection('admins')
-            .where('email', isEqualTo: firebaseUser.email)
-            .limit(1)
-            .get();
-        if (adminQuery.docs.isNotEmpty) {
-          assignedRole = UserRole.admin;
-        }
-      } catch (e) {
-        debugPrint('[AuthRepository] Admin check failed: $e');
-      }
-    }
-
-    await _ensureUserDocument(
-      firebaseUser,
-      role: assignedRole,
-      forceRoleUpdate: assignedRole == UserRole.admin,
-    );
+    await _assignRoleAndUser(userCred.user!);
+    return true;
   }
 
   // ---------------------------------------------------------------------------
-  // Phone / OTP  (Participants)
-  // ---------------------------------------------------------------------------
-
-  @override
-  Future<void> verifyPhoneNumber(
-    String phoneNumber, {
-    required Function(String verificationId, int? resendToken) codeSent,
-    required Function(String error) verificationFailed,
-  }) async {
-    // Step 1: Check participant registration directly in Firestore (no Cloud Function needed)
-    try {
-      final query = await _firestore
-          .collection('participants')
-          .where('phone', isEqualTo: phoneNumber)
-          .limit(1)
-          .get();
-
-      if (query.docs.isEmpty) {
-        verificationFailed('This phone number is not registered as a participant.');
-        return;
-      }
-    } catch (e) {
-      verificationFailed('Could not verify registration: $e');
-      return;
-    }
-
-    // Step 2: Proceed with Firebase Phone Auth
-    await _firebaseAuth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential cred) async {
-        final userCred = await _firebaseAuth.signInWithCredential(cred);
-        await _ensureUserDocument(userCred.user!, role: UserRole.participant);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        verificationFailed(e.message ?? 'Verification failed');
-      },
-      codeSent: codeSent,
-      codeAutoRetrievalTimeout: (_) {},
-    );
-  }
-
-  @override
-  Future<void> signInWithSmsCode({
-    required String verificationId,
-    required String smsCode,
-  }) async {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: smsCode,
-    );
-    final userCred = await _firebaseAuth.signInWithCredential(credential);
-    await _ensureUserDocument(userCred.user!, role: UserRole.participant);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Email / Password  (Admins)
+  // Email / Password
   // ---------------------------------------------------------------------------
 
   @override
@@ -161,38 +118,12 @@ class FirebaseAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    // Step 1: Verify the email exists in the sealed admins allowlist.
-    // Use a flag so intentional "not an admin" exceptions are never swallowed
-    // by the Firestore network-error catch block.
-    bool isAdminVerified = false;
-    try {
-      final adminQuery = await _firestore
-          .collection('admins')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-      isAdminVerified = adminQuery.docs.isNotEmpty;
-    } catch (e) {
-      throw Exception('Could not reach the admin list. Check your connection.');
-    }
-
-    if (!isAdminVerified) {
-      throw Exception('This email is not registered as an admin.');
-    }
-
-    // Step 2: Sign in with standard Firebase Email/Password Auth.
-    // Admin accounts must be pre-created in Firebase Console → Authentication → Users.
-    // If a password has never been set, use "Forgot Password?" to receive a reset link.
     try {
       final userCred = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email,
+        email: email.trim().toLowerCase(),
         password: password,
       );
-      await _ensureUserDocument(
-        userCred.user!,
-        role: UserRole.admin,
-        forceRoleUpdate: true,
-      );
+      await _assignRoleAndUser(userCred.user!);
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'wrong-password':
@@ -200,14 +131,10 @@ class FirebaseAuthRepository implements AuthRepository {
           // Firebase v6+ returns invalid-credential for: wrong password,
           // account not found, or no email/password credential linked.
           throw Exception(
-            'Wrong password, or no password has been set for this account. '
-            'Use "Forgot Password?" to receive a reset link.',
+            'Incorrect email or password. Use "Forgot password?" if needed.',
           );
         case 'user-not-found':
-          throw Exception(
-            'No Firebase Auth account found for this email. '
-            'Create it in Firebase Console → Authentication → Users.',
-          );
+          throw Exception('No account was found for this email.');
         case 'too-many-requests':
           throw Exception('Too many failed attempts. Try again later.');
         default:
@@ -222,35 +149,61 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> sendPasswordResetEmail(String email) async {
-    // Guard: only send to addresses in the admins allowlist.
     try {
-      final adminQuery = await _firestore
-          .collection('admins')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-      if (adminQuery.docs.isEmpty) {
-        throw Exception('This email is not registered as an admin.');
-      }
-    } catch (e) {
-      if (e is Exception) rethrow;
-      throw Exception('Could not reach the admin list. Check your connection.');
-    }
-
-    try {
-      await _firebaseAuth.sendPasswordResetEmail(email: email);
+      await _firebaseAuth.sendPasswordResetEmail(
+        email: email.trim().toLowerCase(),
+      );
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
-          throw Exception(
-            'No Firebase Auth account found. '
-            'Create it in Firebase Console → Authentication → Users first.',
-          );
+          throw Exception('No account was found for this email.');
         case 'too-many-requests':
-          throw Exception('Too many requests. Wait a few minutes and try again.');
+          throw Exception(
+            'Too many requests. Wait a few minutes and try again.',
+          );
         default:
           throw Exception('Could not send reset email: ${e.message}');
       }
+    }
+  }
+
+  @override
+  Future<void> completeOnboarding({required String phone}) async {
+    final firebaseUser = _firebaseAuth.currentUser;
+    if (firebaseUser == null) {
+      throw Exception('Sign in again to complete your profile.');
+    }
+
+    final normalizedPhone = _normalizePhone(phone);
+    final userRef = _firestore.collection('users').doc(firebaseUser.uid);
+    await userRef.set({
+      'phone': normalizedPhone,
+      'onboardingCompleted': true,
+      'onboardingCompletedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    try {
+      var participantSnapshot = await _firestore
+          .collection('participants')
+          .where('uid', isEqualTo: firebaseUser.uid)
+          .limit(1)
+          .get();
+      final email = firebaseUser.email?.trim().toLowerCase();
+      if (participantSnapshot.docs.isEmpty && email != null) {
+        participantSnapshot = await _firestore
+            .collection('participants')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+      }
+      if (participantSnapshot.docs.isNotEmpty) {
+        await participantSnapshot.docs.first.reference.set({
+          'uid': firebaseUser.uid,
+          'phone': normalizedPhone,
+        }, SetOptions(merge: true));
+      }
+    } catch (error) {
+      debugPrint('[AuthRepository] Participant phone sync failed: $error');
     }
   }
 
@@ -268,11 +221,68 @@ class FirebaseAuthRepository implements AuthRepository {
   // Private helpers
   // ---------------------------------------------------------------------------
 
+  Future<void> _assignRoleAndUser(User firebaseUser) async {
+    try {
+      final resolved = await _resolveRoleFromFirestore(firebaseUser);
+      await _ensureUserDocument(
+        firebaseUser,
+        role: resolved.role,
+        teamId: resolved.teamId,
+        teamRole: resolved.teamRole,
+        forceRoleUpdate: true,
+      );
+      await firebaseUser.getIdToken(true);
+    } catch (_) {
+      await _firebaseAuth.signOut();
+      throw Exception('Could not determine account role. Try again.');
+    }
+  }
+
+  Future<({UserRole role, String? teamId, String? teamRole})>
+  _resolveRoleFromFirestore(User firebaseUser) async {
+    final email = firebaseUser.email?.trim().toLowerCase();
+    if (email == null || email.isEmpty) {
+      return (role: UserRole.viewer, teamId: null, teamRole: null);
+    }
+
+    final adminSnapshot = await _firestore
+        .collection('admins')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (adminSnapshot.docs.isNotEmpty) {
+      return (role: UserRole.admin, teamId: null, teamRole: null);
+    }
+
+    final participantSnapshot = await _firestore
+        .collection('participants')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (participantSnapshot.docs.isNotEmpty) {
+      final participant = participantSnapshot.docs.first;
+      final participantData = participant.data();
+      if (participantData['isActive'] == false) {
+        return (role: UserRole.viewer, teamId: null, teamRole: null);
+      }
+      await participant.reference.update({'uid': firebaseUser.uid});
+      return (
+        role: UserRole.participant,
+        teamId: participantData['teamId'] as String?,
+        teamRole: participantData['teamRole'] as String?,
+      );
+    }
+
+    return (role: UserRole.viewer, teamId: null, teamRole: null);
+  }
+
   /// Ensures a `users/{uid}` document exists. Creates one on first login.
   /// Always refreshes `lastLoginAt` and the FCM token on every login.
   Future<void> _ensureUserDocument(
     User firebaseUser, {
     required UserRole role,
+    String? teamId,
+    String? teamRole,
     bool forceRoleUpdate = false,
   }) async {
     final ref = _firestore.collection('users').doc(firebaseUser.uid);
@@ -288,8 +298,10 @@ class FirebaseAuthRepository implements AuthRepository {
 
     if (!doc.exists) {
       // Look up participant data if role is participant
-      String? teamId;
-      if (role == UserRole.participant && firebaseUser.phoneNumber != null) {
+      var resolvedTeamId = teamId;
+      if (resolvedTeamId == null &&
+          role == UserRole.participant &&
+          firebaseUser.phoneNumber != null) {
         try {
           final pQuery = await _firestore
               .collection('participants')
@@ -297,7 +309,7 @@ class FirebaseAuthRepository implements AuthRepository {
               .limit(1)
               .get();
           if (pQuery.docs.isNotEmpty) {
-            teamId = pQuery.docs.first.data()['teamId'] as String?;
+            resolvedTeamId = pQuery.docs.first.data()['teamId'] as String?;
             // Link uid back to the participant doc
             await pQuery.docs.first.reference.update({'uid': firebaseUser.uid});
           }
@@ -313,7 +325,9 @@ class FirebaseAuthRepository implements AuthRepository {
         avatarUrl: firebaseUser.photoURL,
         role: role,
         fcmToken: fcmToken,
-        teamId: teamId,
+        teamId: resolvedTeamId,
+        teamRole: teamRole,
+        onboardingCompleted: false,
         createdAt: now,
         lastLoginAt: now,
       );
@@ -325,6 +339,8 @@ class FirebaseAuthRepository implements AuthRepository {
         'lastLoginAt': Timestamp.fromDate(DateTime.now()),
         if (fcmToken != null) 'fcmToken': fcmToken,
         if (forceRoleUpdate) 'role': role.name,
+        if (forceRoleUpdate) 'teamId': teamId,
+        if (forceRoleUpdate) 'teamRole': teamRole,
       };
       await ref.update(updates);
     }
@@ -338,8 +354,18 @@ class FirebaseAuthRepository implements AuthRepository {
       phone: firebaseUser.phoneNumber,
       avatarUrl: firebaseUser.photoURL,
       role: UserRole.viewer,
+      onboardingCompleted: false,
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
     );
+  }
+
+  String _normalizePhone(String phone) {
+    final trimmed = phone.trim();
+    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length < 7 || digits.length > 15) {
+      throw Exception('Enter a valid phone number with country code.');
+    }
+    return trimmed.startsWith('+') ? '+$digits' : digits;
   }
 }

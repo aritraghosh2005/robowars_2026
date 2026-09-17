@@ -71,6 +71,25 @@ class MatchEditorViewModel extends _$MatchEditorViewModel {
     }
   }
 
+  Future<bool> saveMatchResult(Match match) async {
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final roleState = ref.read(roleServiceProvider).asData?.value;
+      if (roleState?.service is! AdminService) {
+        throw Exception('Permission denied: Not an admin');
+      }
+      await ref.read(matchDaoProvider).saveMatchResult(match);
+      state = state.copyWith(isSaving: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to save result: $e',
+      );
+      return false;
+    }
+  }
+
   Future<void> deleteMatch(String matchId) async {
     state = state.copyWith(isSaving: true, errorMessage: null);
     

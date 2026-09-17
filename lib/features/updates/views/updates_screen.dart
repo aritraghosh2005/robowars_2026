@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:robowars_app/core/auth/auth_providers.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/updates/models/update_item.dart';
 import 'package:robowars_app/features/updates/viewmodels/updates_viewmodel.dart';
@@ -14,10 +15,11 @@ class UpdatesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final updates = ref.watch(updatesViewModelProvider);
+    final canAccessNotifications = ref.watch(canAccessNotificationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      endDrawer: const NotificationDrawer(),
+      endDrawer: canAccessNotifications ? const NotificationDrawer() : null,
       body: TabLoadingWrapper(
         headerSlivers: [
           CyberSliverAppBar(

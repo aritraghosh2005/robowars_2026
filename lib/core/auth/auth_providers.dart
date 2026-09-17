@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:robowars_app/core/firebase/firebase_providers.dart';
 import 'package:robowars_app/core/auth/role_mode.dart';
@@ -16,9 +17,19 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 final authStateProvider = StreamProvider<AppUser?>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  return authRepository.authStateChanges().map((user) {
-    if (user != null) {
-      FcmService().subscribeBasedOnRole(user);
+  final fcmService = FcmService();
+  return authRepository.authStateChanges().asyncMap((user) async {
+    try {
+      if (user != null) {
+        await fcmService.subscribeBasedOnRole(user);
+      } else {
+        await fcmService.clearSubscriptions();
+      }
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Could not update FCM subscriptions: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
     }
     return user;
   });
@@ -56,4 +67,9 @@ final currentUserProvider = Provider<AppUser?>((ref) {
     case RoleMode.viewer:
       return null; // Viewer has no user profile
   }
+});
+
+final canAccessNotificationsProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user != null && user.role != UserRole.viewer;
 });

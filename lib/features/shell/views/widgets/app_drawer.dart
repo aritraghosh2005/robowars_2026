@@ -9,7 +9,6 @@ import 'package:robowars_app/shared/utils/route_transitions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:robowars_app/core/auth/auth_providers.dart';
-import 'package:robowars_app/core/config/config_providers.dart';
 import 'package:robowars_app/features/auth/models/app_user.dart';
 import 'package:robowars_app/features/admin/auth/admin_service.dart';
 import 'package:robowars_app/services/service_providers.dart';
@@ -22,8 +21,6 @@ class AppDrawer extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final roleState = ref.watch(roleServiceProvider).asData?.value;
     final isAdmin = roleState?.service is AdminService || user?.role == UserRole.admin;
-    final moodMessage = ref.watch(moodMessageProvider).asData?.value ?? "Keep the energy high today!";
-
     return Drawer(
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
@@ -96,31 +93,6 @@ class AppDrawer extends ConsumerWidget {
                 ),
               ),
             ),
-            
-            // Mood Message
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-              color: AppColors.primary.withValues(alpha: 0.05),
-              child: Row(
-                children: [
-                  const Text('💬', style: TextStyle(fontSize: 16)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      moodMessage,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             const Divider(color: AppColors.border, height: 1),
             const SizedBox(height: 16),
 
@@ -158,8 +130,11 @@ class AppDrawer extends ConsumerWidget {
                 icon: Icons.shield_outlined,
                 title: 'ADMIN CONSOLE',
                 onTap: () {
+                  final scaffold = Scaffold.of(context);
                   Navigator.pop(context);
-                  context.push('/admin');
+                  context.push('/admin').then((_) {
+                    if (scaffold.mounted) scaffold.openDrawer();
+                  });
                 },
               ),
 

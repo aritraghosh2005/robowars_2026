@@ -57,9 +57,25 @@ class ScheduleViewModel extends _$ScheduleViewModel {
 
   List<Match> get filteredMatches {
     final allMatches = state.matches.asData?.value ?? [];
-    if (state.selectedWeightCategory == 'All') {
-      return allMatches;
-    }
-    return allMatches.where((match) => match.category == state.selectedWeightCategory).toList();
+    final filtered = allMatches.where((match) {
+      final matchesTab = state.selectedTab == 'Completed'
+          ? match.status == 'completed' || match.winner.isNotEmpty
+          : match.status != 'completed' && match.winner.isEmpty;
+      final matchesCategory = state.selectedWeightCategory == 'All' ||
+          match.category == state.selectedWeightCategory;
+      return matchesTab && matchesCategory;
+    }).toList();
+
+    filtered.sort((a, b) {
+      final aStart = a.scheduledAt;
+      final bStart = b.scheduledAt;
+      if (aStart == null && bStart == null) return 0;
+      if (aStart == null) return 1;
+      if (bStart == null) return -1;
+      return state.selectedTab == 'Completed'
+          ? bStart.compareTo(aStart)
+          : aStart.compareTo(bStart);
+    });
+    return filtered;
   }
 }

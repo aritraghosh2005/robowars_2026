@@ -18,8 +18,17 @@ class CallupSenderScreen extends ConsumerStatefulWidget {
 
 class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _messageController = TextEditingController(text: 'Please report to the arena pit area immediately.');
-  Team? _selectedTeam;
+  final _messageController = TextEditingController(
+    text: 'Please report to the arena pit area immediately.',
+  );
+  String? _selectedTeamId;
+  List<Team> _latestTeams = const [];
+
+  Team? get _selectedTeam {
+    final selectedId = _selectedTeamId;
+    if (selectedId == null) return null;
+    return _latestTeams.where((team) => team.id == selectedId).firstOrNull;
+  }
 
   @override
   void dispose() {
@@ -28,16 +37,21 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
   }
 
   Future<void> _submit() async {
-    if (_formKey.currentState!.validate() && _selectedTeam != null) {
+    final selectedTeam = _selectedTeam;
+    if (_formKey.currentState!.validate() && selectedTeam != null) {
       final success = await ref
           .read(callupSenderViewModelProvider.notifier)
-          .sendCallup(_selectedTeam!.id, _selectedTeam!.name, _messageController.text.trim());
+          .sendCallup(
+            selectedTeam.id,
+            selectedTeam.name,
+            _messageController.text.trim(),
+          );
 
       if (!mounted) return;
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Urgent arena call-up sent to ${_selectedTeam!.name}!'),
+            content: Text('Urgent call-up queued for ${selectedTeam.name}.'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -53,7 +67,7 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
           ),
         );
       }
-    } else if (_selectedTeam == null) {
+    } else if (selectedTeam == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a team to call up.'),
@@ -69,9 +83,15 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
     if (roleState == null || roleState.service is! AdminService) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(backgroundColor: AppColors.background, iconTheme: const IconThemeData(color: Colors.white)),
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
         body: const Center(
-          child: Text('Permission denied: Not an admin', style: TextStyle(color: Colors.red, fontSize: 18)),
+          child: Text(
+            'Permission denied: Not an admin',
+            style: TextStyle(color: Colors.red, fontSize: 18),
+          ),
         ),
       );
     }
@@ -109,7 +129,9 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFF2B55).withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: const Color(0xFFFF2B55).withValues(alpha: 0.4),
+                  ),
                   gradient: LinearGradient(
                     colors: [
                       const Color(0xFFFF2B55).withValues(alpha: 0.12),
@@ -127,7 +149,11 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                         color: const Color(0xFFFF2B55).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.emergency_share_outlined, color: Color(0xFFFF2B55), size: 24),
+                      child: const Icon(
+                        Icons.emergency_share_outlined,
+                        color: Color(0xFFFF2B55),
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     const Expanded(
@@ -176,34 +202,66 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                 stream: teamsStream,
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red));
+                    return Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    );
                   }
                   if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    );
                   }
 
                   final teams = snapshot.data!;
+                  _latestTeams = teams;
+                  final selectedTeam = _selectedTeam;
+                  if (_selectedTeamId != null && selectedTeam == null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted && _selectedTeamId != null) {
+                        setState(() => _selectedTeamId = null);
+                      }
+                    });
+                  }
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: AppColors.border),
                     ),
                     child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Team>(
+                      child: DropdownButton<String>(
                         dropdownColor: AppColors.surfaceAlt,
-                        style: const TextStyle(color: Colors.white, fontFamily: 'Space Grotesk'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Space Grotesk',
+                        ),
                         isExpanded: true,
-                        hint: const Text('Select a team to summon...', style: TextStyle(color: AppColors.textMuted)),
-                        value: _selectedTeam,
-                        icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                        hint: const Text(
+                          'Select a team to summon...',
+                          style: TextStyle(color: AppColors.textMuted),
+                        ),
+                        value: selectedTeam?.id,
+                        icon: const Icon(
+                          Icons.arrow_drop_down,
+                          color: AppColors.primary,
+                        ),
                         items: teams.map((team) {
-                          return DropdownMenuItem<Team>(
-                            value: team,
+                          return DropdownMenuItem<String>(
+                            value: team.id,
                             child: Row(
                               children: [
-                                const Icon(Icons.precision_manufacturing, color: AppColors.primary, size: 18),
+                                const Icon(
+                                  Icons.precision_manufacturing,
+                                  color: AppColors.primary,
+                                  size: 18,
+                                ),
                                 const SizedBox(width: 10),
                                 Text(
                                   team.name,
@@ -218,9 +276,9 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                             ),
                           );
                         }).toList(),
-                        onChanged: (value) {
+                        onChanged: (teamId) {
                           setState(() {
-                            _selectedTeam = value;
+                            _selectedTeamId = teamId;
                           });
                         },
                       ),
@@ -245,10 +303,15 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
               TextFormField(
                 controller: _messageController,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.white, fontFamily: 'Space Grotesk'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Space Grotesk',
+                ),
                 decoration: InputDecoration(
                   hintText: 'Enter arena summons instruction...',
-                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
                   filled: true,
                   fillColor: AppColors.surface,
                   border: OutlineInputBorder(
@@ -264,7 +327,9 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                     borderSide: const BorderSide(color: Color(0xFFFF2B55)),
                   ),
                 ),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Instruction is required' : null,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Instruction is required'
+                    : null,
               ),
               const SizedBox(height: 28),
 
@@ -275,12 +340,19 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                   onPressed: state.isLoading ? null : _submit,
                   icon: state.isLoading
                       ? const SizedBox.shrink()
-                      : const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 22),
+                      : const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                   label: state.isLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
                         )
                       : const Text(
                           'DISPATCH CALL-UP BANNER',
@@ -294,7 +366,9 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                         ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF2B55),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     elevation: 0,
                   ),
                 ),
@@ -305,7 +379,11 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                 const SizedBox(height: 36),
                 Row(
                   children: [
-                    const Icon(Icons.contacts_outlined, color: AppColors.primary, size: 18),
+                    const Icon(
+                      Icons.contacts_outlined,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'TEAM MEMBERS // ${_selectedTeam!.name.toUpperCase()}',
@@ -321,16 +399,23 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                 ),
                 const SizedBox(height: 12),
                 StreamBuilder<List<AppUser>>(
-                  stream: ref.watch(userDaoProvider).watchUsersByTeam(_selectedTeam!.id),
+                  stream: ref
+                      .watch(userDaoProvider)
+                      .watchUsersByTeam(_selectedTeam!.id),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red));
+                      return Text(
+                        'Error: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
+                      );
                     }
                     if (!snapshot.hasData) {
                       return const Center(
                         child: Padding(
                           padding: EdgeInsets.all(24.0),
-                          child: CircularProgressIndicator(color: AppColors.primary),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
                         ),
                       );
                     }
@@ -347,7 +432,10 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                         child: const Center(
                           child: Text(
                             'No team members registered for this team.',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       );
@@ -361,7 +449,12 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                       itemBuilder: (context, index) {
                         final user = users[index];
                         final initials = user.displayName.isNotEmpty
-                            ? user.displayName.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join()
+                            ? user.displayName
+                                  .trim()
+                                  .split(' ')
+                                  .map((e) => e.isNotEmpty ? e[0] : '')
+                                  .take(2)
+                                  .join()
                             : 'U';
 
                         return Container(
@@ -378,7 +471,8 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 18,
-                                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                                    backgroundColor: AppColors.primary
+                                        .withValues(alpha: 0.15),
                                     child: Text(
                                       initials,
                                       style: const TextStyle(
@@ -392,7 +486,8 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           user.displayName,
@@ -430,19 +525,39 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       onPressed: user.phone != null
-                                          ? () => launchUrl(Uri.parse('tel:${user.phone}'))
+                                          ? () => launchUrl(
+                                              Uri.parse('tel:${user.phone}'),
+                                            )
                                           : null,
-                                      icon: const Icon(Icons.phone_outlined, size: 14),
-                                      label: const Text('CALL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      icon: const Icon(
+                                        Icons.phone_outlined,
+                                        size: 14,
+                                      ),
+                                      label: const Text(
+                                        'CALL',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: Colors.greenAccent,
                                         side: BorderSide(
                                           color: user.phone != null
-                                              ? Colors.greenAccent.withValues(alpha: 0.5)
+                                              ? Colors.greenAccent.withValues(
+                                                  alpha: 0.5,
+                                                )
                                               : AppColors.border,
                                         ),
-                                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                          horizontal: 4,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -450,19 +565,38 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       onPressed: user.email != null
-                                          ? () => launchUrl(Uri.parse('mailto:${user.email}'))
+                                          ? () => launchUrl(
+                                              Uri.parse('mailto:${user.email}'),
+                                            )
                                           : null,
-                                      icon: const Icon(Icons.email_outlined, size: 14),
-                                      label: const Text('EMAIL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      icon: const Icon(
+                                        Icons.email_outlined,
+                                        size: 14,
+                                      ),
+                                      label: const Text(
+                                        'EMAIL',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: Colors.lightBlueAccent,
                                         side: BorderSide(
                                           color: user.email != null
-                                              ? Colors.lightBlueAccent.withValues(alpha: 0.5)
+                                              ? Colors.lightBlueAccent
+                                                    .withValues(alpha: 0.5)
                                               : AppColors.border,
                                         ),
-                                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                          horizontal: 4,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -470,22 +604,44 @@ class _CallupSenderScreenState extends ConsumerState<CallupSenderScreen> {
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           SnackBar(
-                                            content: Text('Direct alert dispatched to ${user.displayName}'),
+                                            content: Text(
+                                              'Direct alert dispatched to ${user.displayName}',
+                                            ),
                                             behavior: SnackBarBehavior.floating,
                                           ),
                                         );
                                       },
-                                      icon: const Icon(Icons.notifications_active_outlined, size: 14),
-                                      label: const Text('NOTIFY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      icon: const Icon(
+                                        Icons.notifications_active_outlined,
+                                        size: 14,
+                                      ),
+                                      label: const Text(
+                                        'NOTIFY',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: AppColors.primary,
                                         side: BorderSide(
-                                          color: AppColors.primary.withValues(alpha: 0.5),
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.5,
+                                          ),
                                         ),
-                                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                          horizontal: 4,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),

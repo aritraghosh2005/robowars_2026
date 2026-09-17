@@ -30,20 +30,23 @@ exports.onMatchCompleted = onDocumentUpdated("matches/{matchId}", async (event) 
     }
 
     try {
-      // 1. Update team points and stats
       const batch = db.batch();
-      
-      const winnerRef = db.collection("teams").doc(winnerId);
-      batch.update(winnerRef, {
-        wins: admin.firestore.FieldValue.increment(1),
-        points: admin.firestore.FieldValue.increment(winnerPoints),
-      });
 
-      const loserRef = db.collection("teams").doc(loserId);
-      batch.update(loserRef, {
-        losses: admin.firestore.FieldValue.increment(1),
-        points: admin.firestore.FieldValue.increment(loserPoints),
-      });
+      // Older clients rely on this trigger for score updates. New clients set
+      // pointsApplied after updating both team totals in one transaction.
+      if (newValue.pointsApplied !== true) {
+        const winnerRef = db.collection("teams").doc(winnerId);
+        batch.update(winnerRef, {
+          wins: admin.firestore.FieldValue.increment(1),
+          pts: admin.firestore.FieldValue.increment(winnerPoints),
+        });
+
+        const loserRef = db.collection("teams").doc(loserId);
+        batch.update(loserRef, {
+          losses: admin.firestore.FieldValue.increment(1),
+          pts: admin.firestore.FieldValue.increment(loserPoints),
+        });
+      }
 
       // 2. Process Predictions
       const predictionsSnapshot = await db.collectionGroup("predictions")
@@ -52,6 +55,7 @@ exports.onMatchCompleted = onDocumentUpdated("matches/{matchId}", async (event) 
 
       predictionsSnapshot.forEach((doc) => {
         const prediction = doc.data();
+        if (prediction.status !== "pending") return;
         if (prediction.predictedWinnerTeamId === winnerId) {
           // Correct prediction
           const pointsAwarded = Math.round(100 * (prediction.pointsMultiplier || 1.0));
@@ -66,8 +70,11 @@ exports.onMatchCompleted = onDocumentUpdated("matches/{matchId}", async (event) 
             predictionPoints: admin.firestore.FieldValue.increment(pointsAwarded),
           });
         } else {
-          // Wrong prediction - delete it
-          batch.delete(doc.ref);
+          batch.update(doc.ref, {
+            status: "lost",
+            pointsAwarded: 0,
+            isCorrect: false,
+          });
         }
       });
 
@@ -99,15 +106,31 @@ exports.onNotificationCreated = onDocumentCreated("notifications/{notificationId
   if (!data) return;
 
   try {
-    await messaging.send({
-      topic: 'participants',
+    const messageId = await messaging.send({
+      topic: "participants",
       notification: {
         title: data.title,
         body: data.content,
       },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "robowars_alerts",
+          sound: "default",
+        },
+      },
+    });
+    await event.data.ref.update({
+      deliveryStatus: "sent",
+      deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+      fcmMessageId: messageId,
     });
     logger.info(`Successfully sent notification broadcast: ${data.title}`);
   } catch (error) {
+    await event.data.ref.update({
+      deliveryStatus: "failed",
+      deliveryError: error.message || String(error),
+    });
     logger.error("Error sending notification broadcast", error);
   }
 });
@@ -121,14 +144,18 @@ exports.onCallupCreated = onDocumentCreated("callups/{callupId}", async (event) 
   if (!data || !data.isActive) return;
 
   try {
-    await messaging.send({
+    const messageId = await messaging.send({
       topic: `team_${data.teamId}`,
       notification: {
         title: `URGENT CALL-UP: ${data.teamName}`,
         body: data.message,
       },
       android: {
-        priority: 'high',
+        priority: "high",
+        notification: {
+          channelId: "robowars_alerts",
+          sound: "default",
+        },
       },
       apns: {
         payload: {
@@ -138,118 +165,117 @@ exports.onCallupCreated = onDocumentCreated("callups/{callupId}", async (event) 
         },
       },
     });
+    await event.data.ref.update({
+      deliveryStatus: "sent",
+      deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+      fcmMessageId: messageId,
+    });
     logger.info(`Successfully sent callup to team_${data.teamId}`);
   } catch (error) {
+    await event.data.ref.update({
+      deliveryStatus: "failed",
+      deliveryError: error.message || String(error),
+    });
     logger.error("Error sending callup", error);
   }
 });
 
-/**
- * 2. mintAdminToken - HTTPS Callable
- */
-exports.mintAdminToken = onCall(async (request) => {
-  const email = request.data.email;
-  const password = request.data.password; // Note: In production, password validation should ideally be done differently than passing it to a cloud function, but for this event this is fine.
-
-  if (!email || !password) {
-    throw new HttpsError("invalid-argument", "Email and password required.");
+async function resolveRoleForEmail(email) {
+  const normalizedEmail = (email || "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    return {role: "viewer", teamId: null, participantRef: null};
   }
 
-  // Check admins collection
-  const adminSnapshot = await db.collection("admins").where("email", "==", email).get();
-  if (adminSnapshot.empty) {
-    throw new HttpsError("permission-denied", "Not an admin.");
+  const [adminSnapshot, participantSnapshot] = await Promise.all([
+    db.collection("admins")
+        .where("email", "==", normalizedEmail)
+        .limit(1)
+        .get(),
+    db.collection("participants")
+        .where("email", "==", normalizedEmail)
+        .limit(1)
+        .get(),
+  ]);
+
+  if (!adminSnapshot.empty) {
+    return {role: "admin", teamId: null, participantRef: null};
   }
 
-  const adminDoc = adminSnapshot.docs[0].data();
-  
-  // Here we assume the password check is simple (e.g. pre-shared key or hardcoded in doc).
-  // For the sake of this Robowars app plan:
-  if (adminDoc.password !== password) {
-    throw new HttpsError("permission-denied", "Invalid credentials.");
+  if (!participantSnapshot.empty) {
+    const participant = participantSnapshot.docs[0];
+    if (participant.data().isActive === false) {
+      return {role: "viewer", teamId: null, participantRef: null};
+    }
+    return {
+      role: "participant",
+      teamId: participant.data().teamId || null,
+      participantRef: participant.ref,
+    };
   }
 
-  try {
-    const customToken = await admin.auth().createCustomToken(adminDoc.uid, { role: "admin" });
-    return { token: customToken };
-  } catch (error) {
-    logger.error("Error minting admin token", error);
-    throw new HttpsError("internal", "Unable to mint token.");
-  }
-});
-
-/**
- * 3. validateParticipantPhone - HTTPS Callable
- */
-exports.validateParticipantPhone = onCall(async (request) => {
-  const phone = request.data.phone;
-  if (!phone) {
-    throw new HttpsError("invalid-argument", "Phone number required.");
-  }
-
-  const partSnapshot = await db.collection("participants").where("phone", "==", phone).get();
-  return { allowed: !partSnapshot.empty };
-});
+  return {role: "viewer", teamId: null, participantRef: null};
+}
 
 /**
- * 4. onUserCreated - Auth trigger (Before Create - Blocking Function)
- * Or standard Auth trigger. Using beforeUserCreated for claims if possible.
+ * Assigns initial claims when a Firebase Auth user is first created.
  */
 exports.onUserCreated = beforeUserCreated(async (event) => {
   const user = event.data;
-  let role = "viewer";
-  let teamId = null;
+  const resolved = await resolveRoleForEmail(user.email);
 
-  if (user.phoneNumber) {
-    // Check if participant
-    const partSnapshot = await db.collection("participants").where("phone", "==", user.phoneNumber).get();
-    if (!partSnapshot.empty) {
-      role = "participant";
-      teamId = partSnapshot.docs[0].data().teamId;
-      
-      // Link uid to participant doc
-      await db.collection("participants").doc(partSnapshot.docs[0].id).update({
-        uid: user.uid,
-      });
-    }
-  } else if (user.email) {
-    // Check if admin
-    const adminSnapshot = await db.collection("admins").where("email", "==", user.email).get();
-    if (!adminSnapshot.empty) {
-      role = "admin";
-    }
+  if (resolved.participantRef) {
+    await resolved.participantRef.update({uid: user.uid});
   }
 
-  // Create users doc
   await db.collection("users").doc(user.uid).set({
     uid: user.uid,
-    displayName: user.displayName || "",
+    displayName: user.displayName || user.email || "User",
     email: user.email || "",
     phone: user.phoneNumber || "",
     avatarUrl: user.photoURL || "",
-    role: role,
-    teamId: teamId,
+    role: resolved.role,
+    teamId: resolved.teamId,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
     fcmToken: "",
+    onboardingCompleted: false,
     predictionPoints: 0,
   });
 
   return {
     customClaims: {
-      role: role,
-      teamId: teamId,
+      role: resolved.role,
+      teamId: resolved.teamId,
     },
   };
 });
+
+async function assertAdmin(request) {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Sign in first.");
+  }
+
+  let email = request.auth.token.email;
+  if (!email) {
+    const user = await admin.auth().getUser(request.auth.uid);
+    email = user.email;
+  }
+
+  const normalizedEmail = (email || "").trim().toLowerCase();
+  const adminSnapshot = await db.collection("admins")
+      .where("email", "==", normalizedEmail)
+      .limit(1)
+      .get();
+  if (adminSnapshot.empty) {
+    throw new HttpsError("permission-denied", "Admin only.");
+  }
+}
 
 /**
  * 5. sendCallup - HTTPS Callable (Admin only)
  */
 exports.sendCallup = onCall(async (request) => {
-  if (request.auth?.token?.role !== "admin") {
-    throw new HttpsError("permission-denied", "Admin only.");
-  }
+  await assertAdmin(request);
 
   const { matchId, teamIds, arena, reportInMinutes } = request.data;
 
@@ -295,15 +321,13 @@ exports.sendCallup = onCall(async (request) => {
  * 6. sendBroadcastNotification - HTTPS Callable (Admin only)
  */
 exports.sendBroadcastNotification = onCall(async (request) => {
-  if (request.auth?.token?.role !== "admin") {
-    throw new HttpsError("permission-denied", "Admin only.");
-  }
+  await assertAdmin(request);
 
   const { title, body, targetRole, priority } = request.data;
   
   let topic = "role_all";
   if (targetRole === "viewer") topic = "role_viewer";
-  if (targetRole === "participant") topic = "role_participant";
+  if (targetRole === "participant") topic = "participants";
 
   // Send FCM
   await messaging.send({

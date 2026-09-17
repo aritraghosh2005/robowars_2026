@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/schedule/models/match.dart';
 import 'package:robowars_app/features/prediction/viewmodels/prediction_viewmodel.dart';
+import 'package:robowars_app/features/prediction/repositories/prediction_providers.dart';
 import 'package:robowars_app/core/auth/auth_providers.dart';
 
 class ExpandedPrediction extends StatefulWidget {
@@ -68,29 +70,51 @@ class _ExpandedPredictionState extends State<ExpandedPrediction> {
           Consumer(
             builder: (context, ref, child) {
               final predictionState = ref.watch(predictionViewModelProvider);
+              final predictions = ref.watch(userPredictionsProvider).asData?.value;
+              final hasPrediction = predictions?.containsKey(widget.match.id) == true;
+              final isOpen = widget.match.isPredictionOpen;
               
               return SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: predictionState.isLoading
+                  onPressed: predictionState.isLoading || !isOpen
                       ? null
                       : () async {
-                          final currentUser = ref.read(currentUserProvider);
+                          final currentUser = ref.read(authStateProvider).asData?.value;
                           if (currentUser == null) {
+                            Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Please login to make a prediction')),
                             );
-                            Navigator.of(context).pop();
+                            context.push('/auth');
                             return;
                           }
-                          await ref.read(predictionViewModelProvider.notifier).submitPrediction(
-                                widget.match,
-                                widget.selectedTeam,
-                              );
-                          if (context.mounted) {
+                          try {
+                            await ref
+                                .read(predictionViewModelProvider.notifier)
+                                .submitPrediction(
+                                  widget.match,
+                                  widget.selectedTeam,
+                                );
+                            if (!context.mounted) return;
                             Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Prediction submitted successfully!')),
+                              SnackBar(
+                                content: Text(
+                                  hasPrediction
+                                      ? 'Prediction updated.'
+                                      : 'Prediction submitted.',
+                                ),
+                              ),
+                            );
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            final message = error
+                                .toString()
+                                .replaceFirst('Bad state: ', '')
+                                .replaceFirst('Exception: ', '');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(message)),
                             );
                           }
                         },
@@ -107,9 +131,13 @@ class _ExpandedPredictionState extends State<ExpandedPrediction> {
                           height: 20,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : const Text(
-                          'CONFIRM PREDICTION',
-                          style: TextStyle(
+                      : Text(
+                          isOpen
+                              ? hasPrediction
+                                  ? 'UPDATE PREDICTION'
+                                  : 'CONFIRM PREDICTION'
+                              : 'PREDICTIONS CLOSED',
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.bold,
                             color: Colors.white,

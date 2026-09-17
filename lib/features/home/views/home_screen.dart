@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:robowars_app/core/auth/auth_providers.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/home/viewmodels/home_viewmodel.dart';
 import 'package:robowars_app/features/home/views/widgets/guess_game_card.dart';
@@ -9,8 +10,25 @@ import 'package:robowars_app/features/home/views/widgets/quick_stats_card.dart';
 import 'package:robowars_app/shared/widgets/cyber_sliver_app_bar.dart';
 import 'package:robowars_app/shared/widgets/section_label.dart';
 import 'package:robowars_app/features/notifications/views/notification_drawer.dart';
+import 'package:robowars_app/features/schedule/models/match.dart';
+import 'package:robowars_app/services/service_providers.dart';
 
 import 'package:robowars_app/shared/widgets/tab_loading_wrapper.dart';
+
+final homePredictionMatchesProvider = StreamProvider<List<Match>>((ref) {
+  return ref.watch(matchDaoProvider).watchMatches().map((matches) {
+    final upcomingMatches = matches
+        .where(
+          (match) =>
+              match.status == 'scheduled' &&
+              match.winner.isEmpty &&
+              match.scheduledAt != null,
+        )
+        .toList();
+    upcomingMatches.sort((a, b) => a.scheduledAt!.compareTo(b.scheduledAt!));
+    return upcomingMatches;
+  });
+});
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -40,10 +58,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeViewModelProvider);
+    final canAccessNotifications = ref.watch(canAccessNotificationsProvider);
+    final predictionMatches = ref.watch(homePredictionMatchesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      endDrawer: const NotificationDrawer(),
+      endDrawer: canAccessNotifications ? const NotificationDrawer() : null,
       body: TabLoadingWrapper(
         controller: _scrollController,
         headerSlivers: [
@@ -68,9 +88,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // Predict the Winner
                 const SectionLabel('PREDICT THE WINNER'),
                 const SizedBox(height: 12),
-                GuessGameCard(
-                  matchups: state.matchups,
-                  totalPages: state.matchups.length,
+                predictionMatches.when(
+                  data: (matches) => matches.isEmpty
+                      ? const _NoOpenPredictions()
+                      : GuessGameCard(matches: matches),
+                  loading: () => const SizedBox(
+                    height: 160,
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  ),
+                  error: (_, __) => const _NoOpenPredictions(),
                 ),
 
                 const SizedBox(height: 28),
@@ -120,6 +148,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NoOpenPredictions extends StatelessWidget {
+  const _NoOpenPredictions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 112,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Text(
+        'No matches are open for predictions.',
+        style: TextStyle(color: AppColors.textSecondary),
       ),
     );
   }

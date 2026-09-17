@@ -27,8 +27,9 @@ import 'package:robowars_app/features/admin/dao/dummy_user_dao.dart';
 
 enum ServiceBackend { firebase, dummy }
 
-// Use dummy backend for rapid prototyping. Switch to firebase when ready.
-final backendProvider = Provider<ServiceBackend>((ref) => ServiceBackend.dummy);
+final backendProvider = Provider<ServiceBackend>(
+  (ref) => ServiceBackend.firebase,
+);
 
 final matchDaoProvider = Provider<MatchDao>((ref) {
   final backend = ref.watch(backendProvider);

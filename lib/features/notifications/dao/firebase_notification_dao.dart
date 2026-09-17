@@ -24,6 +24,7 @@ class FirebaseNotificationDao implements NotificationDao {
       'title': title,
       'content': content,
       'timestamp': FieldValue.serverTimestamp(),
+      'deliveryStatus': 'queued',
     });
   }
 }

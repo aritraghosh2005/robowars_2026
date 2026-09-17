@@ -1,36 +1,63 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:robowars_app/core/auth/auth_providers.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
-import 'package:robowars_app/features/home/models/matchup.dart';
+import 'package:robowars_app/features/prediction/repositories/prediction_providers.dart';
 import 'package:robowars_app/features/schedule/models/match.dart';
 import 'package:robowars_app/features/prediction/views/prediction_popup.dart';
 
-class GuessGameCard extends StatefulWidget {
-  final List<Matchup> matchups;
-  final int totalPages;
+class GuessGameCard extends ConsumerStatefulWidget {
+  final List<Match> matches;
 
   const GuessGameCard({
     super.key,
-    required this.matchups,
-    this.totalPages = 6,
+    required this.matches,
   });
 
   @override
-  State<GuessGameCard> createState() => _GuessGameCardState();
+  ConsumerState<GuessGameCard> createState() => _GuessGameCardState();
 }
 
-class _GuessGameCardState extends State<GuessGameCard> {
+class _GuessGameCardState extends ConsumerState<GuessGameCard> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  Timer? _deadlineTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _deadlineTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant GuessGameCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_currentPage >= widget.matches.length && widget.matches.isNotEmpty) {
+      _currentPage = widget.matches.length - 1;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(_currentPage);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
+    _deadlineTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalPages = widget.totalPages;
+    final totalPages = widget.matches.length;
+    final predictions = ref.watch(userPredictionsProvider).asData?.value ?? {};
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -47,7 +74,14 @@ class _GuessGameCardState extends State<GuessGameCard> {
               itemCount: totalPages,
               onPageChanged: (index) => setState(() => _currentPage = index),
               itemBuilder: (context, index) {
-                final m = widget.matchups[index % widget.matchups.length];
+                final match = widget.matches[index];
+                final predictedTeamId = predictions[match.id];
+                final predictedTeam = predictedTeamId == match.team1Id
+                    ? match.team1
+                    : predictedTeamId == match.team2Id
+                        ? match.team2
+                        : null;
+                final isPredictionOpen = match.isPredictionOpen;
                 return Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -63,7 +97,7 @@ class _GuessGameCardState extends State<GuessGameCard> {
                               border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
                             ),
                             child: Text(
-                              m.category,
+                              match.category,
                               style: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 10,
@@ -87,7 +121,7 @@ class _GuessGameCardState extends State<GuessGameCard> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          Expanded(child: _teamBlock(m.team1, m.bot1, CrossAxisAlignment.start)),
+                          Expanded(child: _teamBlock(match.team1, match.bot1, CrossAxisAlignment.start)),
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 10),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -105,39 +139,50 @@ class _GuessGameCardState extends State<GuessGameCard> {
                               ),
                             ),
                           ),
-                          Expanded(child: _teamBlock(m.team2, m.bot2, CrossAxisAlignment.end)),
+                          Expanded(child: _teamBlock(match.team2, match.bot2, CrossAxisAlignment.end)),
                         ],
                       ),
                       const Spacer(),
                       SizedBox(
                         width: double.infinity,
                         child: TextButton(
-                          onPressed: () => showDialog(
-                            context: context,
-                            builder: (context) => PredictionPopup(
-                              match: Match(
-                                id: 'mock_${m.team1}_${m.team2}',
-                                team1: m.team1,
-                                team2: m.team2,
-                                bot1: m.bot1,
-                                bot2: m.bot2,
-                                category: m.category,
-                                time: '10:00 AM',
-                                winner: '',
-                              ),
-                            ),
-                          ),
+                          onPressed: isPredictionOpen ? () {
+                            final user = ref.read(authStateProvider).asData?.value;
+                            if (user == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Sign in to predict the winner.'),
+                                ),
+                              );
+                              context.push('/auth');
+                              return;
+                            }
+                            showDialog(
+                              context: context,
+                              barrierColor: Colors.black87,
+                              builder: (context) => PredictionPopup(match: match),
+                            );
+                          } : null,
                           style: TextButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: isPredictionOpen
+                                ? AppColors.primary
+                                : AppColors.surfaceAlt,
                             foregroundColor: Colors.white,
+                            disabledForegroundColor: AppColors.textMuted,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text(
-                            'PREDICT WINNER',
-                            style: TextStyle(
+                          child: Text(
+                            isPredictionOpen
+                                ? predictedTeam == null
+                                    ? 'PREDICT WINNER'
+                                    : 'PREDICTED: ${predictedTeam.toUpperCase()}'
+                                : 'PREDICTIONS CLOSED',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 11,
                               fontWeight: FontWeight.bold,

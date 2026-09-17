@@ -44,6 +44,9 @@ class DummyMatchDao implements MatchDao {
   }
 
   @override
+  Future<void> saveMatchResult(Match match) => updateMatch(match);
+
+  @override
   Future<void> deleteMatch(String matchId) async {
     _matches.removeWhere((m) => m.id == matchId);
   }

@@ -33,7 +33,7 @@ migrate_working_dir/
 
 # Symbolication related
 app.*.symbols
-
+node_modules
 # Obfuscation related
 app.*.map.json
 

@@ -60,7 +60,9 @@ class AdminDashboardScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
                 gradient: LinearGradient(
                   colors: [
                     AppColors.primary.withValues(alpha: 0.12),
@@ -78,9 +80,15 @@ class AdminDashboardScreen extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
                     ),
-                    child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 24),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -153,10 +161,20 @@ class AdminDashboardScreen extends ConsumerWidget {
             _buildAdminCard(
               context,
               title: 'Manage Teams & Bots',
-              subtitle: 'Register teams, weight classes, and bot stats',
+              subtitle: 'Create, edit, or delete teams and bot rosters',
               category: 'ROSTER',
               icon: Icons.groups_outlined,
               onTap: () => context.push('/admin/teams'),
+            ),
+            const SizedBox(height: 12),
+            _buildAdminCard(
+              context,
+              title: 'Participants & Teams',
+              subtitle: 'Promote viewers and assign participants to teams',
+              category: 'ACCESS',
+              icon: Icons.manage_accounts_outlined,
+              accentColor: Colors.blueAccent,
+              onTap: () => context.push('/admin/participants'),
             ),
             const SizedBox(height: 12),
             _buildAdminCard(
@@ -247,7 +265,9 @@ class AdminDashboardScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: effectiveAccent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: effectiveAccent.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: effectiveAccent.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Icon(icon, color: effectiveAccent, size: 24),
               ),
@@ -257,7 +277,10 @@ class AdminDashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: effectiveAccent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -296,7 +319,11 @@ class AdminDashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 16),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.textMuted,
+                size: 16,
+              ),
             ],
           ),
         ),

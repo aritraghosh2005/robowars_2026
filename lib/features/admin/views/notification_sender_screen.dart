@@ -35,7 +35,7 @@ class _NotificationSenderScreenState extends ConsumerState<NotificationSenderScr
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Push notification broadcasted to all participants!'),
+            content: Text('Notification queued for FCM delivery.'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),

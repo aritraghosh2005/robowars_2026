@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:robowars_app/core/auth/auth_providers.dart';
 import 'package:robowars_app/core/auth/role_mode.dart';
+import 'package:robowars_app/core/firebase/firebase_providers.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/auth/models/app_user.dart';
 import 'package:robowars_app/features/teams/models/team.dart';
@@ -18,6 +19,32 @@ final _myTeamProvider = StreamProvider.autoDispose.family((ref, String teamId) {
       .watchTeams()
       .map((teams) => teams.where((t) => t.id == teamId).firstOrNull);
 });
+
+class _ParticipantMembership {
+  const _ParticipantMembership({required this.teamId, this.teamRole});
+
+  final String? teamId;
+  final String? teamRole;
+}
+
+final _participantMembershipProvider = StreamProvider.autoDispose
+    .family<_ParticipantMembership?, String>((ref, email) {
+      return ref
+          .watch(firestoreProvider)
+          .collection('participants')
+          .where('email', isEqualTo: email.trim().toLowerCase())
+          .limit(1)
+          .snapshots()
+          .map((snapshot) {
+            if (snapshot.docs.isEmpty) return null;
+            final data = snapshot.docs.first.data();
+            if (data['isActive'] == false) return null;
+            return _ParticipantMembership(
+              teamId: data['teamId'] as String?,
+              teamRole: (data['teamRole'] ?? data['role']) as String?,
+            );
+          });
+    });
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -44,7 +71,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     );
-    _dropAnim = CurvedAnimation(parent: _dropController, curve: Curves.easeOutBack);
+    _dropAnim = CurvedAnimation(
+      parent: _dropController,
+      curve: Curves.easeOutBack,
+    );
     _fadeAnim = CurvedAnimation(parent: _dropController, curve: Curves.easeIn);
 
     // Team card: drops slightly later for a staggered feel.
@@ -52,8 +82,14 @@ class _ProfileScreenState extends State<ProfileScreen>
       vsync: this,
       duration: const Duration(milliseconds: 620),
     );
-    _teamDropAnim = CurvedAnimation(parent: _teamDropController, curve: Curves.easeOutBack);
-    _teamFadeAnim = CurvedAnimation(parent: _teamDropController, curve: Curves.easeIn);
+    _teamDropAnim = CurvedAnimation(
+      parent: _teamDropController,
+      curve: Curves.easeOutBack,
+    );
+    _teamFadeAnim = CurvedAnimation(
+      parent: _teamDropController,
+      curve: Curves.easeIn,
+    );
 
     _dropController.forward();
     Future.delayed(const Duration(milliseconds: 180), () {
@@ -70,99 +106,120 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer(builder: (context, ref, _) {
-      final user = ref.watch(currentUserProvider);
+    return Consumer(
+      builder: (context, ref, _) {
+        final user = ref.watch(currentUserProvider);
+        final membership =
+            user?.role == UserRole.participant && user?.email != null
+            ? ref
+                  .watch(_participantMembershipProvider(user!.email!))
+                  .asData
+                  ?.value
+            : null;
+        final teamId = user?.teamId ?? membership?.teamId;
 
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: const SecondaryAppBar(title: 'PROFILE'),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 32, 20, 40),
-            child: Column(
-              children: [
-                // ── User ID card ──────────────────────────────
-                _DropInCard(
-                  dropAnim: _dropAnim,
-                  fadeAnim: _fadeAnim,
-                  child: _UserIdCard(user: user),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ── Team ID card (participant only) ───────────
-                if (user != null &&
-                    user.role == UserRole.participant &&
-                    user.teamId != null)
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: const SecondaryAppBar(title: 'PROFILE'),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 32, 20, 40),
+              child: Column(
+                children: [
+                  // ── User ID card ──────────────────────────────
                   _DropInCard(
-                    dropAnim: _teamDropAnim,
-                    fadeAnim: _teamFadeAnim,
-                    child: _TeamIdCard(teamId: user.teamId!, ref: ref),
+                    dropAnim: _dropAnim,
+                    fadeAnim: _fadeAnim,
+                    child: _UserIdCard(user: user),
                   ),
 
-                // ── Admin shortcut ────────────────────────────
-                if (user != null && user.role == UserRole.admin)
-                  _DropInCard(
-                    dropAnim: _teamDropAnim,
-                    fadeAnim: _teamFadeAnim,
-                    child: _AdminShortcutCard(
-                      onTap: () => context.push('/admin'),
+                  const SizedBox(height: 20),
+
+                  // ── Team ID card (participant only) ───────────
+                  if (user != null && user.role == UserRole.participant)
+                    _DropInCard(
+                      dropAnim: _teamDropAnim,
+                      fadeAnim: _teamFadeAnim,
+                      child: teamId == null
+                          ? const _TeamStatusCard(
+                              icon: Icons.group_off_outlined,
+                              title: 'No team assigned',
+                              message:
+                                  'An admin can assign this participant to a team.',
+                            )
+                          : _TeamIdCard(
+                              teamId: teamId,
+                              teamRole: user.teamRole ?? membership?.teamRole,
+                            ),
                     ),
-                  ),
 
-                const SizedBox(height: 36),
-
-                // ── Logout ────────────────────────────────────
-                FadeTransition(
-                  opacity: _teamFadeAnim,
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        await ref.read(authRepositoryProvider).signOut();
-                        ref
-                            .read(activeRoleModeProvider.notifier)
-                            .setRole(RoleMode.viewer);
-                        if (context.mounted) Navigator.of(context).pop();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary, width: 1.5),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'LOGOUT',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.0,
-                        ),
+                  // ── Admin shortcut ────────────────────────────
+                  if (user != null && user.role == UserRole.admin)
+                    _DropInCard(
+                      dropAnim: _teamDropAnim,
+                      fadeAnim: _teamFadeAnim,
+                      child: _AdminShortcutCard(
+                        onTap: () => context.push('/admin'),
                       ),
                     ),
-                  ),
-                ),
 
-                const SizedBox(height: 28),
-                FadeTransition(
-                  opacity: _teamFadeAnim,
-                  child: const Text(
-                    'Made with ❤️ by RoboVITics',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      color: AppColors.textMuted,
-                      fontSize: 11,
+                  const SizedBox(height: 36),
+
+                  // ── Logout ────────────────────────────────────
+                  FadeTransition(
+                    opacity: _teamFadeAnim,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          await ref.read(authRepositoryProvider).signOut();
+                          ref
+                              .read(activeRoleModeProvider.notifier)
+                              .setRole(RoleMode.viewer);
+                          if (context.mounted) Navigator.of(context).pop();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'LOGOUT',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 28),
+                  FadeTransition(
+                    opacity: _teamFadeAnim,
+                    child: const Text(
+                      'Made with ❤️ by RoboVITics',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: AppColors.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 }
 
@@ -188,10 +245,7 @@ class _DropInCard extends StatelessWidget {
         final offset = (1.0 - dropAnim.value) * -140.0;
         return Transform.translate(
           offset: Offset(0, offset),
-          child: Opacity(
-            opacity: fadeAnim.value.clamp(0.0, 1.0),
-            child: child,
-          ),
+          child: Opacity(opacity: fadeAnim.value.clamp(0.0, 1.0), child: child),
         );
       },
     );
@@ -211,8 +265,8 @@ class _UserIdCard extends StatelessWidget {
     final roleColor = user?.role == UserRole.admin
         ? const Color(0xFFFFAA00)
         : user?.role == UserRole.participant
-            ? AppColors.primary
-            : AppColors.textMuted;
+        ? AppColors.primary
+        : AppColors.textMuted;
 
     return Container(
       decoration: BoxDecoration(
@@ -244,11 +298,16 @@ class _UserIdCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: roleColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: roleColor.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: roleColor.withValues(alpha: 0.5),
+                          ),
                         ),
                         child: Text(
                           roleLabel,
@@ -289,9 +348,16 @@ class _UserIdCard extends StatelessWidget {
                         ),
                         child: user?.avatarUrl != null
                             ? ClipOval(
-                                child: Image.network(user!.avatarUrl!, fit: BoxFit.cover),
+                                child: Image.network(
+                                  user!.avatarUrl!,
+                                  fit: BoxFit.cover,
+                                ),
                               )
-                            : Icon(Icons.person_outline, size: 32, color: roleColor),
+                            : Icon(
+                                Icons.person_outline,
+                                size: 32,
+                                color: roleColor,
+                              ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -371,8 +437,8 @@ class _UserIdCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 class _TeamIdCard extends ConsumerWidget {
   final String teamId;
-  final WidgetRef ref;
-  const _TeamIdCard({required this.teamId, required this.ref});
+  final String? teamRole;
+  const _TeamIdCard({required this.teamId, this.teamRole});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -387,13 +453,26 @@ class _TeamIdCard extends ConsumerWidget {
           border: Border.all(color: AppColors.border),
         ),
         child: const Center(
-          child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 2,
+          ),
         ),
       ),
-      error: (e, _) => const SizedBox.shrink(),
+      error: (error, _) => _TeamStatusCard(
+        icon: Icons.error_outline,
+        title: 'Team unavailable',
+        message: error.toString(),
+      ),
       data: (team) {
-        if (team == null) return const SizedBox.shrink();
-        return _TeamCardContent(team: team);
+        if (team == null) {
+          return _TeamStatusCard(
+            icon: Icons.search_off,
+            title: 'Team not found',
+            message: 'The assigned team ID is $teamId.',
+          );
+        }
+        return _TeamCardContent(team: team, teamRole: teamRole);
       },
     );
   }
@@ -401,7 +480,8 @@ class _TeamIdCard extends ConsumerWidget {
 
 class _TeamCardContent extends StatelessWidget {
   final Team team;
-  const _TeamCardContent({required this.team});
+  final String? teamRole;
+  const _TeamCardContent({required this.team, this.teamRole});
 
   @override
   Widget build(BuildContext context) {
@@ -433,11 +513,16 @@ class _TeamCardContent extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
                         ),
                         child: const Text(
                           'TEAM',
@@ -532,14 +617,35 @@ class _TeamCardContent extends StatelessWidget {
                     const SizedBox(height: 16),
                   ],
 
+                  if (teamRole != null && teamRole!.isNotEmpty) ...[
+                    _IdField(
+                      label: 'TEAM ROLE',
+                      value: teamRole!,
+                      icon: Icons.badge_outlined,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Stats row
                   Row(
                     children: [
-                      _StatChip(label: 'WINS', value: '${team.wins}', color: const Color(0xFF22C55E)),
+                      _StatChip(
+                        label: 'WINS',
+                        value: '${team.wins}',
+                        color: const Color(0xFF22C55E),
+                      ),
                       const SizedBox(width: 10),
-                      _StatChip(label: 'LOSSES', value: '${team.losses}', color: AppColors.primary),
+                      _StatChip(
+                        label: 'LOSSES',
+                        value: '${team.losses}',
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: 10),
-                      _StatChip(label: 'PTS', value: '${team.pts}', color: const Color(0xFFFFAA00)),
+                      _StatChip(
+                        label: 'PTS',
+                        value: '${team.pts}',
+                        color: const Color(0xFFFFAA00),
+                      ),
                     ],
                   ),
 
@@ -550,6 +656,59 @@ class _TeamCardContent extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TeamStatusCard extends StatelessWidget {
+  const _TeamStatusCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 28),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -571,12 +730,17 @@ class _AdminShortcutCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFAA00).withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFFFAA00).withValues(alpha: 0.3)),
+          border: Border.all(
+            color: const Color(0xFFFFAA00).withValues(alpha: 0.3),
+          ),
         ),
         child: Row(
           children: [
-            const Icon(Icons.admin_panel_settings_outlined,
-                color: Color(0xFFFFAA00), size: 22),
+            const Icon(
+              Icons.admin_panel_settings_outlined,
+              color: Color(0xFFFFAA00),
+              size: 22,
+            ),
             const SizedBox(width: 14),
             const Expanded(
               child: Text(
@@ -589,7 +753,11 @@ class _AdminShortcutCard extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 18),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textMuted,
+              size: 18,
+            ),
           ],
         ),
       ),
@@ -604,7 +772,11 @@ class _IdField extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  const _IdField({required this.label, required this.value, required this.icon});
+  const _IdField({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -645,7 +817,11 @@ class _StatChip extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _StatChip({required this.label, required this.value, required this.color});
+  const _StatChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -2,21 +2,11 @@ import 'package:robowars_app/features/auth/models/app_user.dart';
 
 abstract class AuthRepository {
   Stream<AppUser?> authStateChanges();
-  
+
   Future<AppUser?> getCurrentUser();
 
-  Future<void> signInWithGoogle();
-  
-  Future<void> verifyPhoneNumber(
-    String phoneNumber, {
-    required Function(String verificationId, int? resendToken) codeSent,
-    required Function(String error) verificationFailed,
-  });
-
-  Future<void> signInWithSmsCode({
-    required String verificationId,
-    required String smsCode,
-  });
+  /// Returns false when the Google account picker is cancelled.
+  Future<bool> signInWithGoogle();
 
   Future<void> signInWithEmailAndPassword({
     required String email,
@@ -26,6 +16,8 @@ abstract class AuthRepository {
   /// Sends a Firebase password-reset email to [email].
   /// Throws a user-readable [Exception] on failure.
   Future<void> sendPasswordResetEmail(String email);
+
+  Future<void> completeOnboarding({required String phone});
 
   Future<void> signOut();
 }

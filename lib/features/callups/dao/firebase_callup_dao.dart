@@ -23,15 +23,14 @@ class FirebaseCallupDao implements CallupDao {
     return _firestore
         .collection('callups')
         .where('teamId', isEqualTo: teamId)
-        .where('isActive', isEqualTo: true)
-        .orderBy('timestamp', descending: true)
-        .limit(1)
         .snapshots()
         .map((snapshot) {
-      if (snapshot.docs.isNotEmpty) {
-        return CallupItem.fromFirestore(snapshot.docs.first.data(), snapshot.docs.first.id);
-      }
-      return null;
+      final activeCallups = snapshot.docs
+          .map((doc) => CallupItem.fromFirestore(doc.data(), doc.id))
+          .where((callup) => callup.isActive)
+          .toList()
+        ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return activeCallups.firstOrNull;
     });
   }
 
@@ -43,6 +42,7 @@ class FirebaseCallupDao implements CallupDao {
       'message': message,
       'isActive': true,
       'timestamp': FieldValue.serverTimestamp(),
+      'deliveryStatus': 'queued',
     });
   }
 

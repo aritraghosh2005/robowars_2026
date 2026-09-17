@@ -15,6 +15,7 @@ class _CallupBannerState extends ConsumerState<CallupBanner>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  final Set<String> _dismissedCallupIds = <String>{};
 
   @override
   void initState() {
@@ -51,6 +52,9 @@ class _CallupBannerState extends ConsumerState<CallupBanner>
         }
 
         final callup = snapshot.data!;
+        if (_dismissedCallupIds.contains(callup.id)) {
+          return const SizedBox.shrink();
+        }
 
         return FadeTransition(
           opacity: _animation,
@@ -83,6 +87,18 @@ class _CallupBannerState extends ConsumerState<CallupBanner>
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _dismissedCallupIds.add(callup.id);
+                      });
+                    },
+                    tooltip: 'Dismiss call-up',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.close_rounded),
+                    color: Colors.white,
                   ),
                 ],
               ),

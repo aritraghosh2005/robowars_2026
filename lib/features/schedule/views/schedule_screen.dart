@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:robowars_app/core/auth/auth_providers.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/schedule/models/match.dart';
 import 'package:robowars_app/features/schedule/viewmodels/schedule_viewmodel.dart';
@@ -7,6 +9,7 @@ import 'package:robowars_app/shared/widgets/cyber_sliver_app_bar.dart';
 import 'package:robowars_app/shared/widgets/weight_filter_chips.dart';
 import 'package:robowars_app/shared/widgets/tab_loading_wrapper.dart';
 import 'package:robowars_app/features/prediction/views/prediction_popup.dart';
+import 'package:robowars_app/features/prediction/repositories/prediction_providers.dart';
 import 'package:robowars_app/features/notifications/views/notification_drawer.dart';
 
 class Schedule extends ConsumerWidget {
@@ -16,10 +19,11 @@ class Schedule extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(scheduleViewModelProvider);
     final vm = ref.read(scheduleViewModelProvider.notifier);
+    final canAccessNotifications = ref.watch(canAccessNotificationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      endDrawer: const NotificationDrawer(),
+      endDrawer: canAccessNotifications ? const NotificationDrawer() : null,
       body: TabLoadingWrapper(
         headerSlivers: [
           CyberSliverAppBar(
@@ -163,7 +167,7 @@ class Schedule extends ConsumerWidget {
                 const Spacer(),
                 if (isUpcoming)
                   Text(
-                    match.time,
+                    match.displayTime,
                     style: const TextStyle(
                       fontFamily: 'Space Grotesk',
                       fontSize: 13,
@@ -286,15 +290,33 @@ class Schedule extends ConsumerWidget {
             const Divider(color: AppColors.border, height: 1),
             Consumer(
               builder: (context, ref, child) {
+                final predictions = ref.watch(userPredictionsProvider).asData?.value;
+                final predictedTeamId = predictions?[match.id];
+                final predictedTeam = predictedTeamId == match.team1Id
+                    ? match.team1
+                    : predictedTeamId == match.team2Id
+                        ? match.team2
+                        : null;
                 return InkWell(
-                  onTap: () {
-                    // Show prediction popup
+                  onTap: match.isPredictionOpen
+                      ? () {
+                    final user = ref.read(authStateProvider).asData?.value;
+                    if (user == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Sign in to predict the winner.'),
+                        ),
+                      );
+                      context.push('/auth');
+                      return;
+                    }
                     showDialog(
                       context: context,
                       barrierColor: Colors.black87,
                       builder: (context) => PredictionPopup(match: match),
                     );
-                  },
+                  }
+                      : null,
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(14),
                     bottomRight: Radius.circular(14),
@@ -304,15 +326,31 @@ class Schedule extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.online_prediction, color: AppColors.primary, size: 18),
-                        SizedBox(width: 8),
+                      children: [
+                        Icon(
+                          Icons.online_prediction,
+                          color: match.isPredictionOpen
+                              ? AppColors.primary
+                              : AppColors.textMuted,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
                         Text(
-                          'PREDICT WINNER',
+                          match.isPredictionOpen
+                              ? predictedTeam == null
+                                  ? 'PREDICT WINNER'
+                                  : 'PREDICTED: ${predictedTeam.toUpperCase()}'
+                              : match.scheduledAt == null
+                                  ? 'START TIME REQUIRED'
+                                  : 'PREDICTIONS CLOSED',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                            color: match.isPredictionOpen
+                                ? AppColors.primary
+                                : AppColors.textMuted,
                             letterSpacing: 1.2,
                             fontSize: 12,
                           ),

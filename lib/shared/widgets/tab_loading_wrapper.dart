@@ -23,8 +23,7 @@ class _TabLoadingWrapperState extends State<TabLoadingWrapper> {
   @override
   void initState() {
     super.initState();
-    // Simulate loading for 2 seconds as requested, to be replaced by real DB loading later
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(milliseconds: 650), () {
       if (mounted) {
         setState(() {
           _isLoading = false;
