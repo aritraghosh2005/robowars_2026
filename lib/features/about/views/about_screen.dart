@@ -17,7 +17,7 @@ class AboutScreen extends StatelessWidget {
     AboutSection(
       title: 'ROBOVITICS',
       description: 'RoboVITics is the official robotics club of VIT Vellore, a community of passionate individuals dedicated to exploring the realms of robotics and automation. Our mission is to foster innovation, provide hands-on experience, and create a collaborative environment for robotics enthusiasts to thrive.',
-      logoAsset: 'assets/images/robovitics logo.svg',
+      logoAsset: 'assets/images/rbv_15_yrs.svg',
     ),
     AboutSection(
       title: 'GRAVITAS',
@@ -29,6 +29,7 @@ class AboutScreen extends StatelessWidget {
       title: 'OUR SPONSOR — ANALOG DEVICES',
       description: 'Analog Devices, Inc. (ADI) is a global leader in the design and manufacture of analog, mixed-signal, and digital signal processing technology, powering everything from industrial automation to robotics. As a proud sponsor of Robowars 2026, ADI champions the next generation of engineers building and battling the robots on this stage.',
       logoAsset: 'assets/images/analog_devices_logo.svg',
+      logoUrl: 'https://www.analog.com/en/index.html',
     ),
   ];
 
@@ -110,22 +111,7 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (section.logoAsset != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Center(
-                child: SvgPicture.asset(
-                  section.logoAsset!,
-                  height: 44,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                ),
-              ),
-            ),
+            _buildLogoCard(section),
             const SizedBox(height: 16),
           ],
           Text(
@@ -138,6 +124,36 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLogoCard(AboutSection section) {
+    final card = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Center(
+        child: SvgPicture.asset(
+          section.logoAsset!,
+          height: 56,
+          fit: BoxFit.contain,
+          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+        ),
+      ),
+    );
+
+    if (section.logoUrl == null) return card;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () => launchUrl(Uri.parse(section.logoUrl!)),
+        child: card,
       ),
     );
   }
@@ -168,6 +184,16 @@ class AboutScreen extends StatelessWidget {
         icon: const FaIcon(FontAwesomeIcons.facebookF, color: Colors.white, size: 20),
         label: 'Facebook',
         onTap: () => launchUrl(Uri.parse('https://www.facebook.com/robovitics/')),
+      ),
+      _FollowLink(
+        icon: const FaIcon(FontAwesomeIcons.youtube, color: Colors.white, size: 20),
+        label: 'YouTube',
+        onTap: () => launchUrl(Uri.parse('https://www.youtube.com/@roboviticsvit8638/about')),
+      ),
+      _FollowLink(
+        icon: const FaIcon(FontAwesomeIcons.medium, color: Colors.white, size: 20),
+        label: 'Medium',
+        onTap: () => launchUrl(Uri.parse('https://medium.com/piblitz/robovitics-a-peek-into-innovation-c0af25377215')),
       ),
       _FollowLink(
         icon: const Icon(Icons.mail_outline, color: Colors.white, size: 20),

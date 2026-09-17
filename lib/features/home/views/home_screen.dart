@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:robowars_app/core/auth/auth_providers.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/home/viewmodels/home_viewmodel.dart';
@@ -95,7 +96,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   loading: () => const SizedBox(
                     height: 160,
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                   error: (_, __) => const _NoOpenPredictions(),
@@ -121,33 +124,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildSponsorBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'TITLE SPONSOR',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
-              letterSpacing: 2.0,
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () =>
+            launchUrl(Uri.parse('https://www.analog.com/en/index.html')),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
-          const SizedBox(height: 14),
-          SvgPicture.asset(
-            'assets/images/analog_devices_logo.svg',
-            height: 56,
-            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          child: Column(
+            children: [
+              const Text(
+                'TITLE SPONSOR',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              const SizedBox(height: 14),
+              SvgPicture.asset(
+                'assets/images/analog_devices_logo.svg',
+                height: 56,
+                colorFilter: const ColorFilter.mode(
+                  Colors.white,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
