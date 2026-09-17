@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
 import 'package:robowars_app/features/about/views/about_screen.dart';
 import 'package:robowars_app/features/profile/views/profile_screen.dart';
@@ -150,10 +151,14 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  SvgPicture.asset(
-                    'assets/images/analog_devices_logo.svg',
-                    height: 48,
-                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  GestureDetector(
+                    onTap: () => launchUrl(Uri.parse('https://www.analog.com/en/index.html')),
+                    // No-tagline wordmark variant — the tagline is dropped here specifically.
+                    child: SvgPicture.asset(
+                      'assets/images/g10.svg',
+                      height: 48,
+                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
