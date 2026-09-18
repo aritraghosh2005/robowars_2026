@@ -25,9 +25,9 @@ class HomeState {
       Contender(name: 'Dark Matter', team: 'Team Shadow', result: 'Top 8'),
     ],
     this.quickStats = const {
-      'Teams': '40+',
-      'Bots': '45+',
-      'Prize Pool': '₹1L+',
+      'Teams': '10+',
+      'Bots': '20+',
+      'Prize Pool': '3.1L',
       'Categories': '3',
     },
   });

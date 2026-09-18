@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robowars_app/core/auth/auth_providers.dart';
@@ -98,8 +99,16 @@ final roleServiceProvider = FutureProvider<RoleServiceState>((ref) async {
     final user = ref.watch(authStateProvider).asData?.value;
     final roleMode = ref.watch(activeRoleModeProvider);
 
-    // No Firebase session — use the active debug role mode.
+    // No Firebase session — in debug builds only, honor the active debug
+    // role mode so the UI can be previewed without real auth. In release
+    // builds this must never grant AdminService with no server-side
+    // backing, so it always falls through to ViewerService.
     if (user == null) {
+      if (!kDebugMode) {
+        final service = ViewerService();
+        await service.initialize();
+        return RoleServiceState(service: service);
+      }
       switch (roleMode) {
         case RoleMode.admin:
           final service = AdminService();

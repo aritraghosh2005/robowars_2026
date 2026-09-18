@@ -39,7 +39,12 @@ final currentUserProvider = Provider<AppUser?>((ref) {
   final firebaseUser = ref.watch(authStateProvider).asData?.value;
   if (firebaseUser != null) return firebaseUser;
 
-  // No Firebase session — inject a mock user matching the active debug role.
+  // No Firebase session — in debug builds only, inject a mock user matching
+  // the active debug role so the UI can be previewed without real auth.
+  // This must never run in release builds: it would let a client-side
+  // toggle fabricate an "admin" session with no server-side backing.
+  if (!kDebugMode) return null;
+
   final roleMode = ref.watch(activeRoleModeProvider);
   final now = DateTime.now();
 

@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "574243597150",
-    "project_id": "robowars-2k26",
-    "storage_bucket": "robowars-2k26.firebasestorage.app"
+    "project_number": "302850873663",
+    "project_id": "robowars-dev-local",
+    "storage_bucket": "robowars-dev-local.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:574243597150:android:603c85bf73518d48457dcf",
+        "mobilesdk_app_id": "1:302850873663:android:6688f532a3dccb55da9b8a",
         "android_client_info": {
           "package_name": "robowars.com.robowars_app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "574243597150-cp7b438t5jso0oqi8dnsimv60m2qjl2m.apps.googleusercontent.com",
+          "client_id": "302850873663-skmlqt5fr4mg4sas8l7f3ki1seetejqt.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "robowars.com.robowars_app",
-            "certificate_hash": "75a5794900bacae9e1788d70c8f7896639370d26"
+            "certificate_hash": "d857d870db54b9ddd791285b48d5626489f9b0d4"
           }
         },
         {
-          "client_id": "574243597150-fse64u0ih9f93nplbksqssr389kps2bl.apps.googleusercontent.com",
+          "client_id": "302850873663-d1870ko3itn4n4vlgma458kai48a2btr.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCI0o-DLafrdy1C-5Ue4gPmuA2NlP6-31g"
+          "current_key": "AIzaSyCZ4l_o3oO_qsobPixEBSS_RHV53qK7YqA"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "574243597150-fse64u0ih9f93nplbksqssr389kps2bl.apps.googleusercontent.com",
+              "client_id": "302850873663-d1870ko3itn4n4vlgma458kai48a2btr.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

@@ -1,0 +1,126 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // Admin check
+    //
+    // Mirrors the client-side lookup in
+    // firebase_auth_repository.dart:_resolveRoleFromFirestore, which
+    // queries the `admins` collection by lowercased email. Admin docs
+    // here are keyed by lowercased email (doc id == email) specifically
+    // so this check can use get() instead of a query — Firestore rules
+    // cannot run `where()` queries, only exact-path lookups.
+    //
+    // get()/exists() calls made from *inside* rule evaluation are not
+    // themselves subject to security rules, so this check is unaffected
+    // by whatever `allow read` rule exists on /admins below.
+    // ------------------------------------------------------------------
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && get(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())).data.active == true;
+    }
+
+    // ------------------------------------------------------------------
+    // admins collection: readable by any signed-in user, writable by
+    // none.
+    //
+    // _resolveRoleFromFirestore (firebase_auth_repository.dart:248-276)
+    // queries this collection directly from the client during login —
+    // `.where('email', isEqualTo: email)` — to resolve the signed-in
+    // user's role, before any users/{uid} doc necessarily exists. That
+    // requires `list` permission on /admins, which get()/exists() alone
+    // can't grant (those only ever back the isAdmin() check below, never
+    // a client-issued query). Which admin emails exist isn't sensitive,
+    // so read is opened up to any authenticated user; write stays
+    // denied for everyone — no self-promotion path.
+    // ------------------------------------------------------------------
+    match /admins/{adminId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Content collections: view-only for everyone signed in, writes
+    // restricted to admins.
+    // ------------------------------------------------------------------
+    match /matches/{matchId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /teams/{teamId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /updates/{updateId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /callups/{callupId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /config/{configId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // participants: roster is readable by any signed-in user. Admins
+    // can manage records fully. A signed-in user may link their own
+    // Firebase uid/phone onto the participant record that matches their
+    // own auth email (see firebase_auth_repository.dart's participant
+    // phone/uid sync on login/onboarding) but may not touch any other
+    // field, and may not touch a record that isn't theirs.
+    // ------------------------------------------------------------------
+    match /participants/{participantId} {
+      allow read: if request.auth != null;
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || (request.auth != null
+            && resource.data.email == request.auth.token.email.lower()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'phone']));
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // users: profile docs. Owners manage their own doc; admins manage
+    // any. The `role` field is informational client-side UI state (real
+    // write authorization is the isAdmin() check above, not this field),
+    // but as defense in depth an owner cannot promote their own doc's
+    // role to "admin" unless they already pass isAdmin().
+    // ------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if isAdmin()
+        || (request.auth != null && request.auth.uid == userId
+            && (!('role' in request.resource.data) || request.resource.data.role != 'admin' || isAdmin()));
+      allow update: if isAdmin()
+        || (request.auth != null && request.auth.uid == userId
+            && (!('role' in request.resource.data) || request.resource.data.role != 'admin' || isAdmin()));
+      allow delete: if isAdmin();
+
+      // Per-user prediction picks — private to the owner.
+      match /predictions/{predictionId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Explicit default deny for anything not covered above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCI0o-DLafrdy1C-5Ue4gPmuA2NlP6-31g',
-    appId: '1:574243597150:android:603c85bf73518d48457dcf',
-    messagingSenderId: '574243597150',
-    projectId: 'robowars-2k26',
-    storageBucket: 'robowars-2k26.firebasestorage.app',
+    apiKey: 'AIzaSyCZ4l_o3oO_qsobPixEBSS_RHV53qK7YqA',
+    appId: '1:302850873663:android:6688f532a3dccb55da9b8a',
+    messagingSenderId: '302850873663',
+    projectId: 'robowars-dev-local',
+    storageBucket: 'robowars-dev-local.firebasestorage.app',
   );
 }

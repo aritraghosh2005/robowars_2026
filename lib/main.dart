@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:robowars_app/core/routing/app_router.dart';
 import 'package:robowars_app/core/theme/app_theme.dart';
+import 'package:robowars_app/firebase_options.dart';
 import 'package:robowars_app/services/fcm_service.dart';
 
 final class MyObserver extends ProviderObserver {
@@ -30,8 +31,7 @@ final class MyObserver extends ProviderObserver {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase using google-services.json (Android) — no FlutterFire CLI needed
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize Firebase Cloud Messaging
   final fcmService = FcmService();
